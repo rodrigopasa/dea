@@ -68,8 +68,9 @@ COPY --from=builder /app/drizzle.config.* ./
 # Copia as dependências de produção já compiladas do estágio builder.
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copia a aplicação compilada do estágio 'builder'.
+# Copia a aplicação compilada e os arquivos de schema necessários para o drizzle-kit.
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/server ./server
 
 # Cria um usuário e grupo não-root para maior segurança.
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001

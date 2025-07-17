@@ -1,23 +1,18 @@
 # STAGE 1: Build Stage
-# Este estágio instala todas as dependências (incluindo as de desenvolvimento)
-# e compila a sua aplicação.
-FROM node:20-alpine AS builder
+# Trocamos para a imagem 'slim' (base Debian), que tem mais pacotes disponíveis.
+FROM node:20-slim AS builder
 
-# Instala as dependências de sistema necessárias para compilar módulos nativos (como o node-canvas).
-# Elas NÃO estarão na imagem final de produção.
-RUN apk add --no-cache \
+# Instala as dependências de sistema para Debian/Ubuntu.
+# Usamos 'apt-get' e os nomes de pacotes são diferentes.
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    musl-dev \
-    giflib-dev \
-    pixman-dev \
-    pangomm-dev \
-    libjpeg-turbo-dev \
-    freetype-dev
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev
 
 # Define o diretório de trabalho no contêiner.
 WORKDIR /app
@@ -26,13 +21,12 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala todas as dependências (dev e prod) a partir do arquivo de lock.
-# Isso irá compilar o 'canvas' e outras dependências nativas aqui.
 RUN npm ci
 
 # Copia o restante do código-fonte da aplicação.
 COPY . .
 
-# Compila a aplicação. Isso deve criar o diretório 'dist' com o código final.
+# Compila a aplicação.
 RUN npm run build
 
 # Remove as dependências de desenvolvimento para a cópia no próximo estágio.
@@ -41,21 +35,20 @@ RUN npm prune --production
 
 # STAGE 2: Production Stage
 # Este estágio cria a imagem final e otimizada, contendo apenas o necessário para rodar em produção.
-FROM node:20-alpine
+FROM node:20-slim
 
-# Instala SOMENTE as dependências de sistema de RUNTIME (tempo de execução).
-# Adicionado 'pdftk' e 'poppler-utils' (para pdftoppm).
-RUN apk add --no-cache \
-    cairo \
-    pango \
-    libjpeg-turbo \
-    giflib \
-    pixman \
-    freetype \
+# Instala as dependências de sistema de RUNTIME para Debian.
+# pdftk agora está disponível como 'pdftk-java'.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcairo2 \
+    libpango-1.0-0 \
+    libjpeg62-turbo \
+    libgif7 \
     curl \
     dumb-init \
-    pdftk \
-    poppler-utils
+    pdftk-java \
+    poppler-utils \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Define o diretório de trabalho.
 WORKDIR /app
@@ -63,7 +56,7 @@ WORKDIR /app
 # Copia os arquivos de pacote do estágio builder.
 COPY --from=builder /app/package*.json ./
 
-# Copia o arquivo de configuração do Drizzle. O * pega .json, .js, ou .ts.
+# Copia o arquivo de configuração do Drizzle.
 COPY --from=builder /app/drizzle.config.* ./
 
 # Copia as dependências de produção já compiladas do estágio builder.
@@ -73,8 +66,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/shared ./shared
 
-# Cria um usuário e grupo não-root para maior segurança.
-RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+# Cria um usuário e grupo não-root (sintaxe para Debian).
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --gid 1001 nextjs
 
 # Altera a propriedade dos arquivos da aplicação para o usuário não-root.
 RUN chown -R nextjs:nodejs /app
@@ -83,7 +76,6 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # Expõe a porta em que a aplicação irá rodar.
-# O Coolify irá injetar a variável de ambiente PORT.
 EXPOSE ${PORT:-5000}
 
 # Health check para garantir que a aplicação está saudável.

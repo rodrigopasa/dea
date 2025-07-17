@@ -44,8 +44,7 @@ RUN npm prune --production
 FROM node:20-alpine
 
 # Instala SOMENTE as dependências de sistema de RUNTIME (tempo de execução).
-# Precisamos das bibliotecas, mas não dos pacotes '-dev'.
-# 'curl' é para o healthcheck e 'dumb-init' para o gerenciamento correto de sinais do processo.
+# Adicionado 'pdftk' e 'poppler-utils' (para pdftoppm).
 RUN apk add --no-cache \
     cairo \
     pango \
@@ -54,7 +53,9 @@ RUN apk add --no-cache \
     pixman \
     freetype \
     curl \
-    dumb-init
+    dumb-init \
+    pdftk \
+    poppler-utils
 
 # Define o diretório de trabalho.
 WORKDIR /app

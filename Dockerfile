@@ -33,8 +33,9 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Remove dev dependencies to reduce image size
-RUN npm ci --only=production && npm cache clean --force
+# Install production dependencies only (clean install)
+RUN rm -rf node_modules package-lock.json
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs
@@ -48,9 +49,9 @@ USER nextjs
 EXPOSE $PORT
 EXPOSE 5000
 
-# Health check
+# Health check - use environment variable for port
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=5 \
-  CMD curl -f http://localhost:$PORT/health || exit 1
+  CMD curl -f http://localhost:${PORT:-5000}/health || exit 1
 
 # Start the application with proper signal handling
 ENTRYPOINT ["dumb-init", "--"]

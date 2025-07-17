@@ -8,6 +8,7 @@ echo "🚀 Iniciando aplicação em modo produção..."
 # Verificar se DATABASE_URL está definida
 if [ -z "$DATABASE_URL" ]; then
     echo "❌ ERROR: DATABASE_URL não está definida"
+    echo "💡 Configure DATABASE_URL antes de continuar"
     exit 1
 fi
 
@@ -28,18 +29,25 @@ echo "   NODE_ENV: $NODE_ENV"
 echo "   PORT: $PORT"
 echo "   DATABASE_URL: $(echo $DATABASE_URL | sed 's/.*@/****@/')"
 
+# Verificar se arquivo de build existe
+if [ ! -f "dist/index.js" ]; then
+    echo "❌ Arquivo de build não encontrado em dist/index.js"
+    echo "💡 Execute 'npm run build' primeiro"
+    exit 1
+fi
+
 # Criar diretórios necessários
 echo "📁 Criando diretórios necessários..."
 mkdir -p uploads/{pdfs,thumbnails,avatars,temp,pdf-edits}
 
-# Executar migrações do banco
-echo "🗄️  Executando migrações do banco..."
-npm run db:push
-
-# Aguardar o banco estar pronto
-echo "⏳ Aguardando banco de dados..."
-timeout 30 bash -c 'until curl -f http://localhost:$PORT/health > /dev/null 2>&1; do sleep 1; done' || echo "Timeout aguardando health check"
+# Executar migrações do banco (opcional - a aplicação faz isso automaticamente)
+echo "🗄️  Aplicando migrações do banco..."
+npm run db:push || echo "⚠️  Migrações falharam - aplicação tentará criar tabelas automaticamente"
 
 # Iniciar aplicação
 echo "🎯 Iniciando aplicação..."
-exec node server/index.js
+echo "📍 Aplicação estará disponível em http://localhost:$PORT"
+echo "🔍 Health check: http://localhost:$PORT/health"
+
+# Usar exec para substituir o processo shell pelo node
+exec node dist/index.js

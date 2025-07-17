@@ -130,11 +130,11 @@ export async function extractPdfMetadata(pdfFilePath: string): Promise<any> {
     
     // Extrair descrição do conteúdo se não encontrou nos metadados
     if (!description || description.trim().length < 10) {
-      console.log("Extraindo descrição do conteúdo");
+      console.log("Extraindo descrição do conteúdo (600 palavras)");
       
-      // Obter o conteúdo das primeiras páginas
+      // Obter o conteúdo das primeiras páginas para uma descrição mais completa
       let fullContent = "";
-      const pagesToProcess = Math.min(3, result.pages.length);
+      const pagesToProcess = Math.min(5, result.pages.length); // Mais páginas para mais conteúdo
       
       for (let i = 0; i < pagesToProcess; i++) {
         const pageContent = result.pages[i].content
@@ -144,21 +144,22 @@ export async function extractPdfMetadata(pdfFilePath: string): Promise<any> {
           
         fullContent += pageContent + " ";
         
-        // Se já temos conteúdo suficiente para a descrição, parar
-        if (fullContent.length > 1500) break;
+        // Parar quando tivermos conteúdo suficiente para 600+ palavras
+        if (fullContent.split(/\s+/).length > 800) break;
       }
       
-      // Extrair as primeiras 150 palavras do conteúdo para a descrição
-      const words = fullContent.split(/\s+/);
-      const firstWords = words.slice(0, 150).join(' ');
-      
-      if (firstWords.length > 0) {
-        description = cleanText(firstWords);
+      if (fullContent.length > 0) {
+        // Extrair as primeiras 600 palavras do conteúdo
+        const words = fullContent.split(/\s+/).filter(word => word.trim().length > 0);
+        const first600Words = words.slice(0, 600).join(' ');
         
-        // Garantir que a descrição termina em um ponto ou em uma frase completa
-        const lastPeriodIndex = description.lastIndexOf('.');
-        if (lastPeriodIndex > description.length * 0.6) {
-          description = description.substring(0, lastPeriodIndex + 1);
+        if (first600Words.length > 0) {
+          description = cleanText(first600Words);
+          
+          // Formatação avançada da descrição
+          description = formatDescription(description);
+          
+          console.log(`Descrição extraída com ${words.slice(0, 600).length} palavras`);
         }
       }
     }
@@ -171,9 +172,21 @@ export async function extractPdfMetadata(pdfFilePath: string): Promise<any> {
     // Limitar tamanhos para evitar problemas de armazenamento
     if (title.length > 200) {
       title = title.substring(0, 200).trim();
+      // Garantir que não corta no meio de uma palavra
+      const lastSpaceIndex = title.lastIndexOf(' ');
+      if (lastSpaceIndex > title.length * 0.8) {
+        title = title.substring(0, lastSpaceIndex).trim();
+      }
     }
-    if (description.length > 500) {
-      description = description.substring(0, 500).trim();
+    
+    // Permitir descrições maiores (até 2000 caracteres para acomodar 600 palavras)
+    if (description.length > 2000) {
+      description = description.substring(0, 2000).trim();
+      // Garantir que termina em frase completa
+      const lastPeriodIndex = description.lastIndexOf('.');
+      if (lastPeriodIndex > description.length * 0.8) {
+        description = description.substring(0, lastPeriodIndex + 1);
+      }
     }
     
     console.log(`Metadados finais - Título: ${title}`);
@@ -205,11 +218,44 @@ function cleanText(text: string): string {
     .replace(/[\r\n\t]+/g, ' ') // Remove quebras de linha e tabs
     .replace(/\s+/g, ' ') // Normaliza espaços múltiplos
     .trim()
-    // Remove apenas caracteres de controle e símbolos problemáticos, preservando acentos
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove caracteres de controle
-    .replace(/[^\u0020-\u007E\u00A0-\u00FF\u0100-\u017F\u0180-\u024F]/g, '') // Mantém ASCII estendido e caracteres latinos
+    // Remove apenas caracteres de controle, preservando TODOS os acentos e caracteres especiais
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove apenas caracteres de controle
+    // Preserva caracteres acentuados do português, espanhol, francês, etc.
+    // Permite todos os caracteres Unicode válidos para texto
+    .replace(/[^\u0020-\u007E\u00A0-\u024F\u1E00-\u1EFF\u0100-\u017F\u0180-\u024F\u1EA0-\u1EF9]/g, '')
     .replace(/\s+/g, ' ') // Normaliza espaços novamente
     .trim();
+}
+
+// Função para formatar descrição de forma mais legível
+function formatDescription(text: string): string {
+  if (!text) return '';
+  
+  let formatted = text
+    // Normaliza espaços
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Adiciona pontuação adequada se necessário
+  if (!formatted.match(/[.!?]$/)) {
+    // Se não termina com pontuação, adiciona ponto
+    if (formatted.length > 0) {
+      formatted += '.';
+    }
+  }
+  
+  // Garante que sentenças estejam bem formatadas
+  formatted = formatted
+    // Corrige espaçamento após pontuação
+    .replace(/([.!?])\s*([A-ZÁÊÌÔÇ])/g, '$1 $2')
+    // Corrige vírgulas sem espaço
+    .replace(/,([^\s])/g, ', $1')
+    // Remove espaços extras antes da pontuação
+    .replace(/\s+([,.!?])/g, '$1')
+    // Capitaliza início de sentenças
+    .replace(/(^|\.\s+)([a-záêìôç])/g, (match, p1, p2) => p1 + p2.toUpperCase());
+  
+  return formatted.trim();
 }
 
 // Função auxiliar para formatar nome de arquivo
@@ -258,23 +304,22 @@ export function generateSlug(text: string): string {
   return text
     .toString()
     .trim()
-    // Normaliza caracteres acentuados e decompõe em componentes
-    .normalize('NFD')
-    // Remove acentos diacríticos (combina caracteres)
-    .replace(/[\u0300-\u036f]/g, '')
-    // Conversões específicas para caracteres especiais do português
-    .replace(/ç/g, 'c')
-    .replace(/Ç/g, 'C')
-    .replace(/ñ/g, 'n')
-    .replace(/Ñ/g, 'N')
-    // Converte para minúsculas
     .toLowerCase()
-    // Substitui espaços e underscores por hífens
+    // Normaliza caracteres acentuados usando NFD (decomposição)
+    .normalize('NFD')
+    // Remove acentos diacríticos mantendo caracteres base
+    .replace(/[\u0300-\u036f]/g, '')
+    // Conversões específicas para caracteres especiais
+    .replace(/ç/g, 'c')
+    .replace(/ñ/g, 'n')
+    .replace(/æ/g, 'ae')
+    .replace(/œ/g, 'oe')
+    .replace(/ß/g, 'ss')
+    // Remove caracteres especiais e substitui espaços por hífens
+    .replace(/[^a-z0-9\s\-]/g, '')
     .replace(/[\s_]+/g, '-')
-    // Remove caracteres não alfanuméricos, exceto hífens
-    .replace(/[^\w\-]+/g, '')
     // Remove múltiplos hífens consecutivos
-    .replace(/\-\-+/g, '-')
+    .replace(/-+/g, '-')
     // Remove hífens no início e fim
     .replace(/^-+|-+$/g, '')
     // Limita o tamanho para URLs amigáveis

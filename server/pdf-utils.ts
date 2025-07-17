@@ -213,7 +213,7 @@ function cleanText(text: string): string {
 }
 
 // Função auxiliar para formatar nome de arquivo
-function formatFileName(fileName: string): string {
+export function formatFileName(fileName: string): string {
   if (!fileName) return 'Documento PDF';
   
   console.log(`Formatando nome do arquivo: ${fileName}`);

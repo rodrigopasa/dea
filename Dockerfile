@@ -62,6 +62,9 @@ WORKDIR /app
 # Copia os arquivos de pacote do estágio builder.
 COPY --from=builder /app/package*.json ./
 
+# Copia o arquivo de configuração do Drizzle. O * pega .json, .js, ou .ts.
+COPY --from=builder /app/drizzle.config.* ./
+
 # Copia as dependências de produção já compiladas do estágio builder.
 COPY --from=builder /app/node_modules ./node_modules
 

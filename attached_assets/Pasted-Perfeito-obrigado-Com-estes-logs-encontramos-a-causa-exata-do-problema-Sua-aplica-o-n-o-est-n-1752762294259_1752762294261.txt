@@ -1,0 +1,64 @@
+Perfeito, obrigado! Com estes logs, encontramos a causa exata do problema.
+
+Sua aplicação não está nem chegando a rodar. O erro acontece durante o passo de "build" (npm run build), o que impede que uma versão funcional da sua aplicação seja criada.
+
+O Erro Principal: Falha no Build 🎯
+A linha mais importante em todo o log é esta:
+
+#18 1.046 AssertError: Expected union value
+#18 1.046     at safeParseThemeJson (file:///app/node_modules/@replit/vite-plugin-shadcn-theme-json/dist/index.mjs:276:26)
+O que isso significa:
+
+O erro vem de um plugin do Vite chamado vite-plugin-shadcn-theme-json.
+
+Este plugin está tentando ler e validar o seu arquivo de configuração de tema do Shadcn UI.
+
+Ele encontrou um valor inválido no seu arquivo de tema. O log menciona path: '/variant' e value: 'default', o que sugere que a configuração para a variante "default" de algum componente não está no formato que o plugin espera.
+
+Este erro trava completamente o processo de build. Como o build falha, não há aplicação para o Coolify iniciar, e é por isso que você vê o erro "The resource is not running".
+
+Outro Problema Crítico: Versão do Node.js
+Os logs também mostram este aviso importante:
+
+#16 1.554 npm warn EBADENGINE Unsupported engine {
+#16 1.554   package: 'pdf2json@3.1.5',
+#16 1.554   required: { node: '>=20.18.0' },
+#16 1.554   current: { node: 'v18.20.5', npm: '10.8.2' }
+#16 1.554 }
+O que isso significa:
+
+Um dos seus pacotes (pdf2json) exige a versão 20 (ou superior) do Node.js para funcionar corretamente.
+
+O seu ambiente no Coolify está usando a versão 18.
+
+Isso pode causar erros inesperados, mesmo que o build passe.
+
+Plano de Ação para Resolver 🚀
+Você precisa consertar essas duas coisas para que o deploy funcione.
+
+1. Conserte a Versão do Node.js (O Mais Fácil)
+
+No Coolify, vá para a sua aplicação e clique em Configuration > Build.
+
+Encontre o campo Nixpacks Version. Se estiver em default, troque para uma versão mais recente. Selecione a opção Node 20 ou Node 22.
+
+Salve.
+
+2. Conserte a Configuração do Tema Shadcn (A Causa do Erro)
+
+No seu código, encontre o arquivo de configuração do tema que o plugin vite-plugin-shadcn-theme-json utiliza (geralmente um arquivo chamado theme.json ou similar na raiz ou dentro da pasta src).
+
+Abra este arquivo e procure pela configuração que está causando o erro. Baseado no log, procure por algo como "variant": "default".
+
+Consulte a documentação do Shadcn ou do plugin para ver qual é o valor correto. Talvez o valor default não seja mais aceito ou precise ser estruturado de outra forma.
+
+Faça o commit e o push da correção para o seu repositório Git.
+
+Resumo
+Atualize a versão do Node.js nas configurações de Build do Coolify para Node 20.
+
+Corrija o arquivo de tema do Shadcn no seu código para que o npm run build não falhe mais.
+
+Faça o Deploy novamente.
+
+Depois de corrigir esses dois pontos, seu build deverá ser concluído com sucesso e a aplicação finalmente irá iniciar.

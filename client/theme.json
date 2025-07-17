@@ -1,0 +1,27 @@
+{
+  "name": "PDFxandria Theme",
+  "dark": true,
+  "variant": "custom",
+  "appearance": "dark",
+  "colors": {
+    "background": "0 0% 4%",
+    "foreground": "0 0% 96%",
+    "card": "0 0% 6%",
+    "card-foreground": "0 0% 96%",
+    "popover": "0 0% 6%",
+    "popover-foreground": "0 0% 96%",
+    "primary": "22 54% 61%",
+    "primary-foreground": "21 61% 99%",
+    "secondary": "0 0% 10%",
+    "secondary-foreground": "0 0% 96%",
+    "muted": "0 0% 10%",
+    "muted-foreground": "0 0% 65%",
+    "accent": "0 0% 10%",
+    "accent-foreground": "0 0% 96%",
+    "destructive": "0 62% 30%",
+    "destructive-foreground": "0 0% 96%",
+    "border": "0 0% 20%",
+    "input": "0 0% 20%",
+    "ring": "22 54% 61%"
+  }
+}

@@ -1,0 +1,691 @@
+import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link, useRoute, useLocation } from "wouter";
+import { Pdf, Category, User } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import PdfCard from "@/components/pdf/pdf-card";
+import PdfViewer from "@/components/pdf/pdf-viewer";
+import {
+  Bookmark,
+  Calendar,
+  Download,
+  Eye,
+  FileText,
+  Flag,
+  Home,
+  Share2,
+  Star,
+  User as UserIcon
+} from "lucide-react";
+
+export default function PdfDetailPage() {
+  const [, navigate] = useLocation();
+  const [match, params] = useRoute("/pdf/:slug");
+  const { toast } = useToast();
+  const { user } = useAuth();
+  
+  // Estado para controlar o modal de DMCA
+  const [dmcaOpen, setDmcaOpen] = useState(false);
+  // Estado para a avaliação
+  const [rating, setRating] = useState<number | null>(null);
+  
+  // Evitando o uso de condições antes dos hooks
+  const slug = match ? params?.slug : null;
+  
+  // Fetch PDF details
+  const { data: pdf, isLoading: isPdfLoading, error } = useQuery<Pdf>({
+    queryKey: [`/api/pdfs/slug/${slug}`],
+    enabled: !!slug,
+  });
+  
+  // Fetch category details if PDF is loaded
+  const { data: category } = useQuery<Category>({
+    queryKey: [`/api/categories/${pdf?.categoryId}`],
+    enabled: !!pdf?.categoryId,
+  });
+  
+  // Fetch uploader details if PDF is loaded
+  const { data: uploader } = useQuery<User>({
+    queryKey: [`/api/users/${pdf?.userId}`],
+    enabled: !!pdf?.userId,
+  });
+  
+  // Fetch related PDFs if category is loaded
+  const { data: relatedPdfs } = useQuery<Pdf[]>({
+    queryKey: [`/api/categories/${pdf?.categoryId}/pdfs`],
+    enabled: !!pdf?.categoryId,
+  });
+  
+  // Atualiza o título da página e meta tags para SEO
+  useEffect(() => {
+    // Só executamos o código quando o PDF estiver carregado
+    if (!pdf) return;
+    
+    // Atualiza o título da página
+    document.title = `${pdf.title} - PDFShare`;
+    
+    // Configuração de meta tags para SEO
+    // Descrição
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      metaDescription = document.createElement('meta');
+      metaDescription.setAttribute('name', 'description');
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.setAttribute('content', pdf.description || `Visualize ${pdf.title} na plataforma PDFShare`);
+    
+    // Meta tags para compartilhamento social (Open Graph)
+    let ogTitle = document.querySelector('meta[property="og:title"]');
+    if (!ogTitle) {
+      ogTitle = document.createElement('meta');
+      ogTitle.setAttribute('property', 'og:title');
+      document.head.appendChild(ogTitle);
+    }
+    ogTitle.setAttribute('content', `${pdf.title} - PDFShare`);
+    
+    let ogDescription = document.querySelector('meta[property="og:description"]');
+    if (!ogDescription) {
+      ogDescription = document.createElement('meta');
+      ogDescription.setAttribute('property', 'og:description');
+      document.head.appendChild(ogDescription);
+    }
+    ogDescription.setAttribute('content', pdf.description || `Visualize ${pdf.title} na plataforma PDFShare`);
+    
+    let ogUrl = document.querySelector('meta[property="og:url"]');
+    if (!ogUrl) {
+      ogUrl = document.createElement('meta');
+      ogUrl.setAttribute('property', 'og:url');
+      document.head.appendChild(ogUrl);
+    }
+    ogUrl.setAttribute('content', window.location.href);
+    
+    let ogType = document.querySelector('meta[property="og:type"]');
+    if (!ogType) {
+      ogType = document.createElement('meta');
+      ogType.setAttribute('property', 'og:type');
+      document.head.appendChild(ogType);
+    }
+    ogType.setAttribute('content', 'article');
+    
+    // Se o PDF tiver uma imagem de capa, adiciona a meta tag de imagem
+    if (pdf.coverImage) {
+      let ogImage = document.querySelector('meta[property="og:image"]');
+      if (!ogImage) {
+        ogImage = document.createElement('meta');
+        ogImage.setAttribute('property', 'og:image');
+        document.head.appendChild(ogImage);
+      }
+      ogImage.setAttribute('content', `/uploads/thumbnails/${pdf.coverImage}`);
+    }
+    
+    // Meta tag para indexação - garantindo que a página (e não o PDF) seja indexada
+    let robotsMeta = document.querySelector('meta[name="robots"]');
+    if (!robotsMeta) {
+      robotsMeta = document.createElement('meta');
+      robotsMeta.setAttribute('name', 'robots');
+      document.head.appendChild(robotsMeta);
+    }
+    robotsMeta.setAttribute('content', 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1');
+    
+    // Link canônico para evitar conteúdo duplicado
+    let canonicalLink = document.querySelector('link[rel="canonical"]');
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', window.location.href);
+    
+    // Limpar as meta tags quando o componente for desmontado
+    return () => {
+      document.title = 'PDFShare';
+      if (metaDescription) metaDescription.setAttribute('content', 'Plataforma de compartilhamento de documentos PDF');
+      if (robotsMeta) robotsMeta.setAttribute('content', 'index, follow');
+      if (canonicalLink) document.head.removeChild(canonicalLink);
+      if (ogTitle) document.head.removeChild(ogTitle);
+      if (ogDescription) document.head.removeChild(ogDescription);
+      if (ogUrl) document.head.removeChild(ogUrl);
+      if (ogType) document.head.removeChild(ogType);
+      if (document.querySelector('meta[property="og:image"]')) {
+        document.head.removeChild(document.querySelector('meta[property="og:image"]')!);
+      }
+    };
+  }, [pdf]);
+
+  // Redirecionamento para 404 se a rota não corresponder
+  useEffect(() => {
+    if (!match) {
+      navigate("/not-found");
+    }
+  }, [match, navigate]);
+  
+  // Mutation para enviar uma reclamação DMCA
+  const dmcaMutation = useMutation({
+    mutationFn: async (data: { pdfId: number, reason: string, contactEmail: string }) => {
+      const res = await apiRequest("POST", "/api/dmca", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reclamação enviada",
+        description: "Sua reclamação DMCA foi enviada e será analisada.",
+      });
+      setDmcaOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao enviar",
+        description: error.message || "Não foi possível enviar sua reclamação. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Mutation para enviar uma avaliação
+  const ratingMutation = useMutation({
+    mutationFn: async (data: { pdfId: number, rating: number }) => {
+      console.log("Enviando avaliação:", data);
+      
+      // Enviamos a avaliação usando fetch nativo para garantir o formato certo
+      const res = await fetch(`/api/pdfs/${data.pdfId}/rate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ rating: data.rating })
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Erro ao avaliar: ${res.status}`);
+      }
+      
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Avaliação enviada",
+        description: "Obrigado pela sua avaliação!",
+      });
+      
+      // Atualiza a query do PDF atual para refletir possíveis mudanças
+      queryClient.invalidateQueries({ queryKey: [`/api/pdfs/slug/${slug}`] });
+    },
+    onError: (error: Error) => {
+      console.error("Erro na avaliação:", error);
+      toast({
+        title: "Erro ao avaliar",
+        description: "Não foi possível enviar sua avaliação. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle PDF download
+  const handleDownload = async () => {
+    if (!pdf) return;
+    
+    try {
+      // Primeiro fazemos uma solicitação fetch para incrementar o contador de downloads
+      // e depois abrimos a janela para download
+      await fetch(`/api/pdfs/${pdf.id}/download`);
+      
+      // Criamos um link temporário para fazer o download
+      const downloadUrl = `/api/pdfs/${pdf.id}/download`;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.target = '_blank';
+      link.download = `${pdf.title}.pdf`;
+      link.click();
+      
+      toast({
+        title: "Download iniciado",
+        description: "O download do seu PDF começou.",
+      });
+      
+      // Atualizamos os dados após o download
+      queryClient.invalidateQueries({ queryKey: [`/api/pdfs/slug/${slug}`] });
+    } catch (error) {
+      toast({
+        title: "Erro ao baixar",
+        description: "Não foi possível baixar o arquivo. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handle PDF bookmark (could be implemented with user bookmarks in the future)
+  const handleBookmark = () => {
+    if (!user) {
+      toast({
+        title: "Login necessário",
+        description: "Faça login para salvar documentos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Documento salvo",
+      description: "O documento foi adicionado aos seus favoritos.",
+    });
+  };
+  
+  // Handle PDF sharing
+  const handleShare = () => {
+    // Copy current URL to clipboard
+    navigator.clipboard.writeText(window.location.href);
+    
+    toast({
+      title: "Link copiado",
+      description: "O link para este documento foi copiado para a área de transferência.",
+    });
+  };
+  
+  // Format date
+  const formatDate = (dateString: Date | null) => {
+    if (!dateString) return 'Data desconhecida';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+  
+  // Handler para enviar o formulário DMCA
+  const handleDmcaSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
+    if (!pdf) return;
+    
+    dmcaMutation.mutate({
+      pdfId: pdf.id,
+      reason: formData.get('reason') as string,
+      contactEmail: formData.get('email') as string
+    });
+  };
+
+  // Handler para avaliação
+  const handleRating = (value: number) => {
+    if (!user) {
+      toast({
+        title: "Login necessário",
+        description: "Faça login para avaliar documentos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!pdf) return;
+    
+    setRating(value);
+    ratingMutation.mutate({
+      pdfId: pdf.id,
+      rating: value
+    });
+  };
+  
+  if (!match) {
+    return null; // Já temos useEffect para redirecionar, então retornamos null
+  }
+  
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Documento não encontrado</h1>
+          <p className="text-gray-400 mb-6">O documento que você está procurando não existe ou foi removido.</p>
+          <Link href="/">
+            <Button className="bg-primary hover:bg-primary-dark">Voltar para a página inicial</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
+  if (isPdfLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="animate-pulse">
+            <div className="h-8 bg-dark-surface-2 rounded w-1/3 mx-auto mb-4"></div>
+            <div className="h-64 bg-dark-surface-2 rounded mb-4"></div>
+            <div className="h-4 bg-dark-surface-2 rounded w-2/3 mx-auto mb-2"></div>
+            <div className="h-4 bg-dark-surface-2 rounded w-1/2 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!pdf) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Erro ao carregar documento</h1>
+          <p className="text-gray-400 mb-6">Não foi possível carregar o documento. Tente novamente.</p>
+          <Link href="/">
+            <Button className="bg-primary hover:bg-primary-dark">Voltar para a página inicial</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter out current PDF from related PDFs and limit to 4
+  const filteredRelatedPdfs = relatedPdfs
+    ?.filter(relatedPdf => relatedPdf.id !== pdf.id)
+    ?.slice(0, 4) || [];
+    
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* DMCA Dialog */}
+      <Dialog open={dmcaOpen} onOpenChange={setDmcaOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border">
+          <DialogHeader>
+            <DialogTitle>Reportar violação de direitos autorais (DMCA)</DialogTitle>
+            <DialogDescription>
+              Preencha o formulário abaixo para reportar uma possível violação de direitos autorais. Sua denúncia será analisada por nossa equipe.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleDmcaSubmit} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">Seu email de contato</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                className="w-full p-2 rounded bg-dark-surface-2 border border-dark-border"
+                placeholder="seu.email@exemplo.com"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="reason" className="text-sm font-medium">Motivo da denúncia</label>
+              <textarea
+                id="reason"
+                name="reason"
+                required
+                rows={4}
+                className="w-full p-2 rounded bg-dark-surface-2 border border-dark-border"
+                placeholder="Descreva detalhadamente a razão da sua denúncia e como este documento viola seus direitos autorais."
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setDmcaOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-primary"
+                disabled={dmcaMutation.isPending}
+              >
+                {dmcaMutation.isPending ? "Enviando..." : "Enviar denúncia"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+        
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <Link href="/">
+                <span className="flex items-center text-primary hover:underline">
+                  <Home className="w-4 h-4 mr-1" /> Início
+                </span>
+              </Link>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            {category && (
+              <>
+                <BreadcrumbItem>
+                  <Link href={`/categoria/${category.slug}`}>
+                    <span className="text-primary hover:underline">
+                      {category.name}
+                    </span>
+                  </Link>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+              </>
+            )}
+            <BreadcrumbItem>
+              <span className="text-gray-400">
+                {pdf.title}
+              </span>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+      
+      <div className="bg-dark-surface rounded-xl p-6 mb-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="lg:w-1/4">
+            <div className="aspect-[2/3] rounded-lg overflow-hidden bg-dark-surface-2">
+              {/* Se houver uma imagem de capa, tenta carregá-la com um cache-buster */}
+              {pdf.coverImage ? (
+                <>
+                  <img 
+                    src={`/uploads/thumbnails/${pdf.coverImage}?t=${Date.now()}`} 
+                    alt={`Capa de ${pdf.title}`} 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      console.error("Erro ao carregar imagem de capa:", pdf.coverImage);
+                      // Marca elemento como falho
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      // Exibe o fallback
+                      const parent = (e.currentTarget as HTMLImageElement).parentElement!;
+                      const fallback = parent.querySelector('.fallback-icon');
+                      if (fallback) fallback.classList.remove('hidden');
+                    }}
+                  />
+                  
+                  {/* Fallback com estilo melhorado para PDFs */}
+                  <div className="fallback-icon hidden w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+                    <FileText className="w-24 h-24 text-primary mb-4" />
+                    <div className="text-center px-6">
+                      <h4 className="font-medium text-gray-700 dark:text-gray-300">{pdf.title}</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        PDF • {pdf.pageCount || '?'} {pdf.pageCount === 1 ? 'página' : 'páginas'}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Se não tiver imagem de capa, mostra o ícone de PDF diretamente
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+                  <FileText className="w-24 h-24 text-primary mb-4" />
+                  <div className="text-center px-6">
+                    <h4 className="font-medium text-gray-700 dark:text-gray-300">{pdf.title}</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                      PDF • {pdf.pageCount || '?'} {pdf.pageCount === 1 ? 'página' : 'páginas'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Sistema de avaliação */}
+            <div className="mt-4 p-3 bg-dark-surface-2 rounded-lg">
+              <div className="text-center mb-2">
+                <h3 className="font-semibold">Avalie este documento</h3>
+              </div>
+              <div className="flex justify-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button 
+                    key={star}
+                    onClick={() => handleRating(star)}
+                    className={`text-xl focus:outline-none ${
+                      rating && star <= rating ? 'text-yellow-400' : 'text-gray-500'
+                    }`}
+                  >
+                    <Star className="w-6 h-6" />
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 text-center text-sm text-gray-400">
+                {rating ? `Sua avaliação: ${rating}/5` : 'Clique para avaliar'}
+              </div>
+            </div>
+            
+            {/* DMCA link */}
+            <div className="mt-4">
+              <Button 
+                variant="ghost" 
+                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 w-full flex items-center justify-center"
+                onClick={() => setDmcaOpen(true)}
+              >
+                <Flag className="w-4 h-4 mr-2" /> Reportar violação de direitos autorais
+              </Button>
+            </div>
+          </div>
+          
+          <div className="lg:w-3/4">
+            <div className="flex flex-wrap justify-between items-start mb-4">
+              <div>
+                {category && (
+                  <Badge className="mb-3" variant="outline">
+                    {category.name}
+                  </Badge>
+                )}
+                <h1 className="text-3xl font-bold mb-1">{pdf.title}</h1>
+                <div className="flex flex-wrap items-center text-gray-400 mb-4 gap-4">
+                  <span className="flex items-center">
+                    <Eye className="mr-1 w-4 h-4" /> {pdf.views} visualizações
+                  </span>
+                  <span className="flex items-center">
+                    <Download className="mr-1 w-4 h-4" /> {pdf.downloads} downloads
+                  </span>
+                  <span className="flex items-center">
+                    <Calendar className="mr-1 w-4 h-4" /> Publicado em {formatDate(pdf.createdAt)}
+                  </span>
+                  <span className="flex items-center">
+                    <UserIcon className="mr-1 w-4 h-4" /> Enviado por <span className="font-medium text-primary ml-1">{uploader?.username || 'Usuário desconhecido'}</span>
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mt-2 lg:mt-0">
+                <Button 
+                  className="bg-primary hover:bg-primary-dark text-white flex items-center"
+                  onClick={handleDownload}
+                >
+                  <Download className="mr-1 w-4 h-4" /> Download
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-dark-border hover:bg-dark-surface-2 flex items-center"
+                  onClick={handleBookmark}
+                >
+                  <Bookmark className="mr-1 w-4 h-4" /> Salvar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-dark-border hover:bg-dark-surface-2 flex items-center"
+                  onClick={handleShare}
+                >
+                  <Share2 className="mr-1 w-4 h-4" /> Compartilhar
+                </Button>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">Sobre este documento</h2>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <div className="bg-dark-surface-2 inline-block px-3 py-1 rounded text-sm">
+                  <FileText className="inline-block mr-1 w-4 h-4" /> 
+                  {pdf.pageCount || '?'} {pdf.pageCount === 1 ? 'página' : 'páginas'}
+                </div>
+                <div className="bg-dark-surface-2 inline-block px-3 py-1 rounded text-sm">
+                  <Eye className="inline-block mr-1 w-4 h-4" /> 
+                  {pdf.views || 0} {pdf.views === 1 ? 'visualização' : 'visualizações'}
+                </div>
+                <div className="bg-dark-surface-2 inline-block px-3 py-1 rounded text-sm">
+                  <Download className="inline-block mr-1 w-4 h-4" /> 
+                  {pdf.downloads || 0} {pdf.downloads === 1 ? 'download' : 'downloads'}
+                </div>
+                <div className="bg-dark-surface-2 inline-block px-3 py-1 rounded text-sm">
+                  <Calendar className="inline-block mr-1 w-4 h-4" /> 
+                  Adicionado em {formatDate(pdf.createdAt)}
+                </div>
+              </div>
+              <p className="text-gray-300 whitespace-pre-line">
+                {pdf.description || 'Sem descrição disponível.'}
+              </p>
+            </div>
+            
+            {/* Uploader info */}
+            {uploader && (
+              <div className="bg-dark-surface-2 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-2">Enviado por</h3>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white mr-3">
+                      <UserIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{uploader.username}</div>
+                      <div className="text-sm text-gray-400">
+                        {uploader.isAdmin ? 'Administrador' : 'Usuário'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Link href={`/usuario/${uploader.username}`}>
+                    <Button variant="link" className="text-primary">Ver perfil</Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* PDF Viewer */}
+      <PdfViewer pdf={pdf} />
+      
+      {/* Related PDFs */}
+      {filteredRelatedPdfs.length > 0 && (
+        <div className="bg-dark-surface rounded-xl p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Documentos relacionados</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {filteredRelatedPdfs.map(relatedPdf => (
+              <PdfCard key={relatedPdf.id} pdf={relatedPdf} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

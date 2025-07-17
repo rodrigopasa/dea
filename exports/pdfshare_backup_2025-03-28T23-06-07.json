@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "exportDate": "2025-03-28T23:06:07.219Z",
+    "tables": [
+      "users",
+      "categories",
+      "pdfs",
+      "favorites",
+      "dmcaRequests"
+    ]
+  },
+  "data": {
+    "users": [
+      {
+        "id": 2,
+        "username": "admin",
+        "password": "f6c01fa5b707cd848d072a2352891c84092aff784e2b846047a8c8f6b3067323e4a009fd1c64b9bac3d1da0eca89c99fbd5c3a71dea9a648a716c84742aac2ce.4ebb11dc7d8aab25d93f731e43051078",
+        "isAdmin": true
+      }
+    ],
+    "categories": [
+      {
+        "id": 1,
+        "name": "Educação",
+        "slug": "educacao"
+      },
+      {
+        "id": 2,
+        "name": "Negócios",
+        "slug": "negocios"
+      },
+      {
+        "id": 3,
+        "name": "Ciência",
+        "slug": "ciencia"
+      },
+      {
+        "id": 4,
+        "name": "Arte",
+        "slug": "arte"
+      },
+      {
+        "id": 5,
+        "name": "Tecnologia",
+        "slug": "tecnologia"
+      }
+    ],
+    "pdfs": [
+      {
+        "id": 1,
+        "title": "Historinha claraa",
+        "slug": "simple-border-stationery-paper-a4-document-1743178685095",
+        "description": "asdfasasdadsadas",
+        "filePath": "1743178685042-50add3bf-774b-47a8-bc6f-046f92d1fcec.pdf",
+        "coverImage": "thumbnail_historinha-claraa_1743178685095.png",
+        "pageCount": 4,
+        "isPublic": true,
+        "views": 11,
+        "downloads": 0,
+        "categoryId": 2,
+        "userId": 2,
+        "createdAt": "2025-03-28T16:18:29.965Z"
+      },
+      {
+        "id": 2,
+        "title": "Aldous Huxley - Admirável mundo novo",
+        "slug": "aldous-huxley-admiravel-mundo-novo",
+        "description": "uhiuhuihuihiuhuihiuhuihiuhui",
+        "filePath": "1743179354999-213ba6ec-fb59-4d7d-8360-94a5b8c9a12e.pdf",
+        "coverImage": "thumbnail_aldous-huxley-admiravel-mundo-novo.png",
+        "pageCount": 249,
+        "isPublic": true,
+        "views": 5,
+        "downloads": 0,
+        "categoryId": 2,
+        "userId": 2,
+        "createdAt": "2025-03-28T16:29:20.000Z"
+      }
+    ],
+    "favorites": [],
+    "dmcaRequests": []
+  }
+}

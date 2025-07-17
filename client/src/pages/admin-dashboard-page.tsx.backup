@@ -1,0 +1,3828 @@
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { User, Pdf, Category, DmcaRequest, SeoSettings, SiteSettings } from "@shared/schema";
+import AdSettingsPanel from "@/components/admin/ad-settings-panel";
+import { Link } from "wouter";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { renderCategoryIcon, CategoryIconSelect } from "@/components/categories/category-icon-select";
+import { EditCategoryDialog } from "@/components/categories/edit-category-dialog";
+import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
+import SeoSettingsPage from "@/pages/admin/seo-settings";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { 
+  Users, 
+  FileText, 
+  Database, 
+  Shield, 
+  EyeOff,
+  PieChart,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Edit,
+  Plus,
+  Settings,
+  Settings2,
+  Eye,
+  Search,
+  Globe,
+  BarChart2,
+  Activity,
+  Compass,
+  Share2,
+  Bookmark,
+  Clock,
+  Smartphone,
+  Tablet,
+  Monitor,
+  Zap,
+  Award,
+  ChevronRight,
+  ExternalLink,
+  Save,
+  Infinity,
+  UserCog,
+  ArrowUp,
+  ArrowDown,
+  Filter,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Loader2
+} from "lucide-react";
+
+export default function AdminDashboardPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedPdf, setSelectedPdf] = useState<Pdf | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedDmca, setSelectedDmca] = useState<DmcaRequest | null>(null);
+  const [isDmcaDialogOpen, setIsDmcaDialogOpen] = useState(false);
+  const [dmcaStatus, setDmcaStatus] = useState<string>("approved");
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
+  const [isPaymentCredentialsDialogOpen, setIsPaymentCredentialsDialogOpen] = useState(false);
+  const [isPlansManagementDialogOpen, setIsPlansManagementDialogOpen] = useState(false);
+  const [paymentSettings, setPaymentSettings] = useState({
+    accessToken: "",
+    provider: "mercadopago",
+    testMode: true
+  });
+  const [isSeoDialogOpen, setIsSeoDialogOpen] = useState(false);
+  
+  // Estados para edição de usuário
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userForm, setUserForm] = useState({
+    username: '',
+    isAdmin: false,
+    isBlocked: false,
+    storageLimit: 1,  // em GB
+    email: '',
+    name: ''
+  });
+  
+  // Estados para gerenciamento de categorias
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    slug: '',
+    icon: 'folder',
+    color: '#4f46e5'
+  });
+  
+  // Estados para upload múltiplo
+  const [isMultipleUploadDialogOpen, setIsMultipleUploadDialogOpen] = useState(false);
+  const [isEditFilesDialogOpen, setIsEditFilesDialogOpen] = useState(false);
+  const [multipleUploadFiles, setMultipleUploadFiles] = useState<File[]>([]);
+  const [multipleUploadCategory, setMultipleUploadCategory] = useState<number>(1);
+  const [multipleUploadIsPublic, setMultipleUploadIsPublic] = useState<boolean>(true);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState<boolean>(false);
+  const [duplicateFiles, setDuplicateFiles] = useState<{file: File, existingPdf?: any}[]>([]);
+  const [editableFiles, setEditableFiles] = useState<Array<{
+    file: File,
+    title: string,
+    description: string,
+    originalName: string,
+    isEdited: boolean
+  }>>([]);
+  const [currentEditingFileIndex, setCurrentEditingFileIndex] = useState(0);
+  
+  // Estados para opções avançadas de upload
+  const [advancedOptionsOpen, setAdvancedOptionsOpen] = useState(false);
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const [useAIOptimization, setUseAIOptimization] = useState(true);
+  const [prefixTitle, setPrefixTitle] = useState('');
+  const [tagKeywords, setTagKeywords] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // SEO Settings
+  const [seoSettings, setSeoSettings] = useState({
+    siteTitle: "PDFxandria - Compartilhe documentos online",
+    siteDescription: "Plataforma completa para armazenar, compartilhar e descobrir documentos em PDF",
+    siteKeywords: "pdf, compartilhamento, documentos, livros, educação, negócios",
+    ogImage: "/generated-icon.png",
+    twitterHandle: "@pdfxandria",
+    googleVerification: "",
+    bingVerification: "",
+    robotsTxt: "User-agent: *\nDisallow: /admin\nDisallow: /uploads/pdfs/\nAllow: /uploads/thumbnails/\nSitemap: /sitemap.xml",
+    gaTrackingId: "",
+    pdfTitleFormat: "${title} em PDF ou Leia Online",
+    openaiApiKey: ""
+  });
+  
+  // Interface para tipificar as configurações de autenticação
+  interface AuthSettings {
+    googleEnabled: boolean;
+    googleClientId: string;
+    googleClientSecret: string;
+    googleCallbackUrl: string;
+    emailEnabled: boolean;
+    emailService: string;
+    emailHost: string;
+    emailPort: number;
+    emailUser: string;
+    emailPassword: string;
+    emailFrom: string;
+  }
+  
+  // Estado para configurações de autenticação
+  const [authSettings, setAuthSettings] = useState<AuthSettings>({
+    googleEnabled: false,
+    googleClientId: '',
+    googleClientSecret: '',
+    googleCallbackUrl: '/api/auth/google/callback',
+    emailEnabled: false,
+    emailService: 'smtp',
+    emailHost: '',
+    emailPort: 587,
+    emailUser: '',
+    emailPassword: '',
+    emailFrom: ''
+  });
+  
+  // Interface para tipificar as estatísticas do administrador
+  interface AdminStats {
+    userCount: number;
+    pdfCount: number;
+    totalViews: number;
+    totalDownloads: number;
+    storageUsage: number;
+    pendingDmcaCount: number;
+    categoryStats: Array<{
+      id: number;
+      name: string;
+      slug: string;
+      count: number;
+      percentage: number;
+    }>;
+  }
+  
+  // Fetch admin stats
+  const { data: stats, isLoading: isStatsLoading } = useQuery<AdminStats>({
+    queryKey: ["/api/admin/stats"],
+  });
+  
+  // Fetch all users
+  const { data: users, isLoading: isUsersLoading } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+  
+  // Fetch all PDFs (including private)
+  const { data: pdfs, isLoading: isPdfsLoading } = useQuery<Pdf[]>({
+    queryKey: ["/api/admin/pdfs"],
+  });
+  
+  // Fetch all categories
+  const { data: categories, isLoading: isCategoriesLoading } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+  });
+  
+  // Fetch all DMCA requests
+  const { data: dmcaRequests, isLoading: isDmcaLoading } = useQuery<DmcaRequest[]>({
+    queryKey: ["/api/dmca"],
+  });
+  
+  // Fetch SEO settings
+  const { data: seoData, isLoading: isSeoLoading } = useQuery<SeoSettings>({
+    queryKey: ["/api/admin/seo"],
+  });
+  
+  // Fetch Auth settings
+  const { data: authData, isLoading: isAuthLoading } = useQuery<AuthSettings>({
+    queryKey: ["/api/auth-settings"],
+  });
+  
+  // Fetch Site settings
+  const { data: siteSettingsData, isLoading: isSiteSettingsLoading } = useQuery<SiteSettings>({
+    queryKey: ["/api/site-settings"],
+  });
+  
+  // Fetch plans
+  const { data: plansData, isLoading: isPlansLoading } = useQuery({
+    queryKey: ["/api/plans"],
+    refetchOnMount: true, // Garantir que os dados sejam buscados ao montar o componente
+  });
+  
+  // Fetch payment settings
+  const { data: paymentSettingsData, isLoading: isPaymentSettingsLoading } = useQuery({
+    queryKey: ["/api/payment-settings"],
+    onSuccess: (data: any) => {
+      if (data && typeof data === 'object') {
+        setPaymentSettings({
+          accessToken: data.accessToken || "",
+          provider: data.provider || "mercadopago",
+          testMode: data.testMode || false
+        });
+      }
+    }
+  });
+  
+  // Fetch subscriptions
+  const { data: subscriptions, isLoading: isSubscriptionsLoading } = useQuery({
+    queryKey: ["/api/subscriptions"],
+  });
+
+  // Atualizar estado de autenticação quando os dados forem carregados
+  useEffect(() => {
+    if (authData) {
+      setAuthSettings({
+        googleEnabled: authData.googleEnabled || false,
+        googleClientId: authData.googleClientId || '',
+        googleClientSecret: authData.googleClientSecret || '',
+        googleCallbackUrl: authData.googleCallbackUrl || '/api/auth/google/callback',
+        emailEnabled: authData.emailEnabled || false,
+        emailService: authData.emailService || 'smtp',
+        emailHost: authData.emailHost || '',
+        emailPort: authData.emailPort || 587,
+        emailUser: authData.emailUser || '',
+        emailPassword: authData.emailPassword || '',
+        emailFrom: authData.emailFrom || ''
+      });
+    }
+  }, [authData]);
+  
+  // Delete PDF mutation
+  const deletePdfMutation = useMutation({
+    mutationFn: async (pdfId: number) => {
+      await apiRequest("DELETE", `/api/pdfs/${pdfId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pdfs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({
+        title: "PDF excluído",
+        description: "O documento foi excluído com sucesso.",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedPdf(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o documento. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update DMCA request status mutation
+  const updateDmcaMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number, status: string }) => {
+      await apiRequest("PATCH", `/api/dmca/${id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dmca"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pdfs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({
+        title: "Solicitação DMCA atualizada",
+        description: "O status da solicitação foi atualizado com sucesso.",
+      });
+      setIsDmcaDialogOpen(false);
+      setSelectedDmca(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar a solicitação. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Save SEO settings mutation
+  const saveSeoSettingsMutation = useMutation({
+    mutationFn: async (settings: typeof seoSettings) => {
+      // Tentar primeiro a rota específica de administrador
+      try {
+        return await apiRequest("PATCH", "/api/admin/seo", settings);
+      } catch (error) {
+        console.log("Falha na primeira tentativa, tentando rota alternativa...");
+        // Se falhar, tentar a rota alternativa
+        return await apiRequest("PATCH", "/api/seo", settings);
+      }
+    },
+    onSuccess: () => {
+      // Atualizar os dados de SEO no cache
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/seo"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/seo"] });
+      
+      toast({
+        title: "Configurações SEO salvas",
+        description: "As configurações de SEO foram atualizadas com sucesso.",
+      });
+      setIsSeoDialogOpen(false);
+    },
+    onError: (error) => {
+      console.error("Erro ao salvar configurações SEO:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações de SEO. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Save Auth settings mutation
+  const saveAuthSettingsMutation = useMutation({
+    mutationFn: async (settings: typeof authSettings) => {
+      return await apiRequest("PATCH", "/api/auth-settings", settings);
+    },
+    onSuccess: () => {
+      // Atualizar os dados de autenticação no cache
+      queryClient.invalidateQueries({ queryKey: ["/api/auth-settings"] });
+      
+      toast({
+        title: "Configurações de autenticação salvas",
+        description: "As configurações de autenticação foram atualizadas com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error("Erro ao salvar configurações de autenticação:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações de autenticação. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Save site settings mutation
+  const saveSiteSettingsMutation = useMutation({
+    mutationFn: async (settings: Partial<SiteSettings>) => {
+      return await apiRequest("PATCH", "/api/site-settings", settings);
+    },
+    onSuccess: () => {
+      // Atualizar os dados de configurações do site no cache
+      queryClient.invalidateQueries({ queryKey: ["/api/site-settings"] });
+      
+      toast({
+        title: "Configurações do site salvas",
+        description: "As configurações do site foram atualizadas com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error("Erro ao salvar configurações do site:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações do site. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Save advanced settings mutation (depreciado, mantido por compatibilidade)
+  const saveAdvancedSettingsMutation = useMutation({
+    mutationFn: async (settings: any) => {
+      return await apiRequest("POST", "/api/admin/settings", settings);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Configurações salvas",
+        description: "As configurações do site foram atualizadas com sucesso.",
+      });
+      setIsAdvancedSettingsOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Extrair metadata de PDF para edição
+  const extractPdfMetadataMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/pdfs/extract-metadata', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao extrair metadados do PDF');
+      }
+      
+      return await response.json();
+    }
+  });
+
+  // Verificar se um arquivo PDF é duplicado
+  const checkDuplicateFile = async (file: File): Promise<{duplicate: boolean, existingPdf?: any}> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/api/pdfs/check-duplicate', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Erro ao verificar duplicação:', error);
+      return {duplicate: false};
+    }
+  };
+
+  // Função para preparar os arquivos para edição
+  const prepareFilesForEditing = async () => {
+    if (multipleUploadFiles.length === 0) return;
+    
+    // Reset editável files
+    setEditableFiles([]);
+    setCurrentEditingFileIndex(0);
+    setDuplicateFiles([]);
+    
+    const filesToProcess = [...multipleUploadFiles];
+    let processedFiles = [];
+    let duplicates: {file: File, existingPdf?: any}[] = [];
+    
+    // Mostrar toast de loading
+    toast({
+      title: "Preparando arquivos",
+      description: "Verificando duplicados e extraindo metadados dos PDFs...",
+    });
+    
+    setIsCheckingDuplicates(true);
+    
+    // Processar arquivos sequencialmente
+    for (const file of filesToProcess) {
+      try {
+        // Primeiro verificar se o arquivo é duplicado
+        const dupeResult = await checkDuplicateFile(file);
+        
+        if (dupeResult.duplicate) {
+          // Se for duplicado, adicionar à lista de duplicados
+          duplicates.push({
+            file,
+            existingPdf: dupeResult.existingPdf
+          });
+          
+          continue; // Pular para o próximo arquivo
+        }
+        
+        // Se não for duplicado, extrair metadados
+        const metadata = await extractPdfMetadataMutation.mutateAsync(file);
+        
+        // Usar título do metadata ou nome do arquivo
+        let title = metadata.title;
+        if (!title || title === 'Documento sem título') {
+          title = file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+        }
+        
+        processedFiles.push({
+          file,
+          originalName: file.name,
+          title,
+          description: metadata.description || '',
+          isEdited: false
+        });
+      } catch (error) {
+        console.error("Erro ao processar arquivo:", file.name, error);
+        // Verificar se o erro é por causa de duplicação
+        const errorMessage = error instanceof Error ? error.message : '';
+        if (errorMessage.includes('duplicado')) {
+          duplicates.push({
+            file,
+            existingPdf: null
+          });
+        } else {
+          // Mesmo se falhar a extração, adicionar arquivo com dados básicos
+          processedFiles.push({
+            file,
+            originalName: file.name,
+            title: file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' '),
+            description: '',
+            isEdited: false
+          });
+        }
+      }
+    }
+    
+    // Atualizar estado com arquivos processados
+    setEditableFiles(processedFiles);
+    
+    // Atualizar duplicados encontrados
+    setDuplicateFiles(duplicates);
+    setIsCheckingDuplicates(false);
+    
+    // Se tivemos duplicados, mostrar toast com essa informação
+    if (duplicates.length > 0) {
+      toast({
+        title: `${duplicates.length} PDFs duplicados detectados`,
+        description: `${duplicates.length} arquivos já existem no sistema e foram removidos da lista de upload.`,
+        variant: "destructive"
+      });
+    }
+    
+    // Verificar se ainda temos arquivos para processar após remoção de duplicados
+    if (processedFiles.length === 0 && duplicates.length > 0) {
+      // Todos os arquivos eram duplicados
+      toast({
+        title: "Apenas arquivos duplicados",
+        description: "Todos os arquivos selecionados já existem no sistema.",
+        variant: "destructive"
+      });
+      setIsMultipleUploadDialogOpen(false);
+      return;
+    } else if (processedFiles.length === 0) {
+      // Nenhum arquivo processado por outros motivos
+      toast({
+        title: "Erro ao processar",
+        description: "Nenhum arquivo pôde ser processado. Tente novamente.",
+        variant: "destructive"
+      });
+      setIsMultipleUploadDialogOpen(false);
+      return;
+    }
+    
+    // Fechar diálogo de upload e abrir diálogo de edição
+    setIsMultipleUploadDialogOpen(false);
+    setIsEditFilesDialogOpen(true);
+  };
+
+  // Multiple PDF upload mutation
+  const uploadMultiplePdfsMutation = useMutation({
+    mutationFn: async ({ 
+      files, 
+      categoryId, 
+      isPublic, 
+      metadata,
+      options = {} 
+    }: { 
+      files: File[], 
+      categoryId: number, 
+      isPublic: boolean,
+      metadata?: Array<{title: string, description: string}>,
+      options?: {
+        skipDuplicates?: boolean,
+        useAIOptimization?: boolean,
+        prefixTitle?: string,
+        tagKeywords?: string
+      }
+    }) => {
+      // Criar um FormData para envio dos arquivos múltiplos
+      const formData = new FormData();
+      
+      // Adicionar cada arquivo ao FormData
+      files.forEach((file, index) => {
+        formData.append('files', file);
+      });
+      
+      // Adicionar parâmetros adicionais
+      formData.append('categoryId', categoryId.toString());
+      formData.append('isPublic', isPublic.toString());
+      
+      // Adicionar metadados editados se disponíveis
+      if (metadata && metadata.length > 0) {
+        formData.append('metadata', JSON.stringify(metadata));
+      }
+      
+      // Adicionar opções avançadas
+      if (options.skipDuplicates !== undefined) {
+        formData.append('skipDuplicates', options.skipDuplicates.toString());
+      }
+      
+      if (options.useAIOptimization !== undefined) {
+        formData.append('useAIOptimization', options.useAIOptimization.toString());
+      }
+      
+      if (options.prefixTitle) {
+        formData.append('prefixTitle', options.prefixTitle);
+      }
+      
+      if (options.tagKeywords) {
+        formData.append('tagKeywords', options.tagKeywords);
+      }
+      
+      // Configurar a requisição com FormData
+      const response = await fetch('/api/admin/pdfs/upload-multiple', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao fazer upload múltiplo de PDFs');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      // Atualizar todas as listas de PDFs
+      queryClient.invalidateQueries({ queryKey: ["/api/pdfs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pdfs/recent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pdfs/popular"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pdfs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      
+      // Preparar mensagem detalhada
+      let description = `${data.processedCount} de ${data.totalCount} PDFs foram enviados com sucesso.`;
+      
+      if (data.duplicatesCount && data.duplicatesCount > 0) {
+        description += ` ${data.duplicatesCount} ${data.duplicatesCount === 1 ? 'arquivo duplicado foi' : 'arquivos duplicados foram'} ${data.skipDuplicates ? 'ignorado' : 'detectado'}.`;
+      }
+      
+      if (data.errorsCount && data.errorsCount > 0) {
+        description += ` ${data.errorsCount} ${data.errorsCount === 1 ? 'arquivo teve' : 'arquivos tiveram'} erros.`;
+      }
+      
+      toast({
+        title: "Upload concluído",
+        description: description,
+      });
+      
+      // Resetar todos os estados
+      setIsMultipleUploadDialogOpen(false);
+      setIsEditFilesDialogOpen(false);
+      setMultipleUploadFiles([]);
+      setEditableFiles([]);
+      setMultipleUploadCategory(1);
+      setMultipleUploadIsPublic(true);
+      
+      // Resetar opções avançadas
+      setAdvancedOptionsOpen(false);
+      setSkipDuplicates(true);
+      setUseAIOptimization(true);
+      setPrefixTitle('');
+      setTagKeywords('');
+      setUploadProgress(0);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro no upload",
+        description: error instanceof Error ? error.message : "Não foi possível enviar os arquivos. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+
+
+  // Save payment settings mutation
+  const savePaymentSettingsMutation = useMutation({
+    mutationFn: async (settings: typeof paymentSettings) => {
+      return await apiRequest("PATCH", "/api/payment-settings", settings);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payment-settings"] });
+      toast({
+        title: "Configurações de pagamento salvas",
+        description: "As credenciais do Mercado Pago foram atualizadas com sucesso.",
+      });
+      setIsPaymentCredentialsDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações de pagamento. Verifique os dados e tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update subscription plans mutation
+  const updatePlansMutation = useMutation({
+    mutationFn: async (plans: Array<{
+      id: number;
+      storageLimit: number;
+      downloadLimit: number;
+      price?: number;
+      annualPrice?: number;
+    }>) => {
+      return await apiRequest("PATCH", "/api/plans", { plans });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      toast({
+        title: "Planos atualizados",
+        description: "Os planos de assinatura foram atualizados com sucesso.",
+      });
+      setIsPlansManagementDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar planos",
+        description: "Não foi possível atualizar os planos de assinatura. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create category mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: async (categoryData: Omit<Category, 'id' | 'createdAt'>) => {
+      return await apiRequest("POST", "/api/categories", categoryData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({
+        title: "Categoria criada",
+        description: "A nova categoria foi adicionada com sucesso.",
+      });
+      setIsCategoryDialogOpen(false);
+      setCategoryForm({ name: '', slug: '', icon: 'folder', color: '#4f46e5' });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao criar categoria",
+        description: "Não foi possível adicionar a categoria. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update category mutation
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<Category> }) => {
+      return await apiRequest("PATCH", `/api/categories/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({
+        title: "Categoria atualizada",
+        description: "As alterações foram salvas com sucesso.",
+      });
+      setIsCategoryDialogOpen(false);
+      setCategoryToEdit(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar a categoria. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Delete category mutation
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: number) => {
+      return await apiRequest("DELETE", `/api/categories/${categoryId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({
+        title: "Categoria excluída",
+        description: "A categoria foi removida com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir a categoria. Verifique se ela possui documentos associados.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update user mutation
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<User> }) => {
+      return await apiRequest("PATCH", `/api/users/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Usuário atualizado",
+        description: "As alterações foram salvas com sucesso.",
+      });
+      setIsUserDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar o usuário. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle edit user
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setUserForm({
+      username: user.username,
+      isAdmin: user.isAdmin || false,
+      isBlocked: user.isBlocked || false,
+      // Converter MB para GB para exibição na UI (com verificação de nulos)
+      storageLimit: (user.storageLimit !== null && user.storageLimit === -1) ? -1 : 
+        Math.round(((user.storageLimit !== null && user.storageLimit !== undefined) ? user.storageLimit : 1024) / 1024 * 10) / 10,
+      email: user.email || '',
+      name: user.name || ''
+    });
+    setIsUserDialogOpen(true);
+  };
+  
+  // Database import mutation
+  const importDatabaseMutation = useMutation({
+    mutationFn: async (file: File) => {
+      // Cria um FormData para envio do arquivo
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Configura a requisição com o FormData (não pode usar apiRequest diretamente)
+      const response = await fetch('/api/admin/database/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao importar banco de dados');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalida todas as consultas para recarregar os dados
+      queryClient.invalidateQueries();
+      toast({
+        title: "Banco de dados importado",
+        description: "Os dados foram importados com sucesso. A página será recarregada para refletir as mudanças.",
+      });
+      setIsImportDialogOpen(false);
+      setImportFile(null);
+      
+      // Recarrega a página após 2 segundos para exibir os novos dados
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao importar",
+        description: error instanceof Error ? error.message : "Não foi possível importar os dados. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle PDF deletion
+  const handleDeletePdf = (pdf: Pdf) => {
+    setSelectedPdf(pdf);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Confirm PDF deletion
+  const confirmDeletePdf = () => {
+    if (selectedPdf) {
+      deletePdfMutation.mutate(selectedPdf.id);
+    }
+  };
+  
+  // Handle DMCA status update
+  const handleUpdateDmca = (dmca: DmcaRequest, status: string) => {
+    setSelectedDmca(dmca);
+    setDmcaStatus(status);
+    setIsDmcaDialogOpen(true);
+  };
+  
+  // Confirm DMCA status update
+  const confirmUpdateDmca = () => {
+    if (selectedDmca) {
+      updateDmcaMutation.mutate({ 
+        id: selectedDmca.id, 
+        status: dmcaStatus 
+      });
+    }
+  };
+  
+  // Format date
+  const formatDate = (dateString: Date | null) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+  
+  // User columns for DataTable
+  const userColumns = [
+    {
+      accessor: "id",
+      header: "ID",
+    },
+    {
+      accessor: "username",
+      header: "Usuário",
+      cell: (user: User) => (
+        <div className="flex items-center">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white mr-2">
+            {user.username.charAt(0).toUpperCase()}
+          </div>
+          <span>{user.username}</span>
+        </div>
+      ),
+    },
+    {
+      accessor: "isAdmin",
+      header: "Tipo",
+      cell: (user: User) => (
+        <Badge variant={user.isAdmin ? "default" : "outline"} className={user.isAdmin ? "bg-primary" : "border-dark-border"}>
+          {user.isAdmin ? "Admin" : "Usuário"}
+        </Badge>
+      ),
+    },
+    {
+      accessor: "isBlocked",
+      header: "Status",
+      cell: (user: User) => (
+        <Badge variant={user.isBlocked ? "destructive" : "outline"} className={user.isBlocked ? "" : "border-dark-border text-success"}>
+          {user.isBlocked ? "Bloqueado" : "Ativo"}
+        </Badge>
+      ),
+    },
+    {
+      accessor: "actions",
+      header: "Ações",
+      cell: (user: User) => (
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 border-dark-border"
+            onClick={() => handleEditUser(user)}
+          >
+            <UserCog className="w-4 h-4 mr-1" />
+            Editar
+          </Button>
+          
+          {/* Botão de exclusão de usuário (não mostrar para o próprio usuário admin) */}
+          {!user.isAdmin && (
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              className="h-8"
+              onClick={() => {
+                // Confirmar exclusão com informações sobre o processo
+                if (confirm(`Tem certeza que deseja excluir o usuário ${user.username}?\n\nA conta será desativada, mas os documentos e interações permanecerão no sistema. O usuário não poderá mais fazer login.`)) {
+                  // Use a API de mutation para maior consistência
+                  apiRequest("DELETE", `/api/users/${user.id}`)
+                    .then(() => {
+                      toast({
+                        title: "Usuário excluído",
+                        description: `O usuário ${user.username} foi excluído com sucesso.`,
+                      });
+                      // Recarregar a lista de usuários
+                      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+                    })
+                    .catch(error => {
+                      toast({
+                        title: "Erro ao excluir usuário",
+                        description: error.message || "Não foi possível excluir o usuário",
+                        variant: "destructive",
+                      });
+                    });
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Excluir
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+  
+  // PDF columns for DataTable
+  const pdfColumns = [
+    {
+      accessor: "title",
+      header: "Documento",
+      cell: (pdf: Pdf) => {
+        const category = categories?.find(cat => cat.id === pdf.categoryId);
+        
+        return (
+          <div className="flex items-center">
+            <div className="w-10 h-12 bg-dark-surface-2 rounded mr-3 overflow-hidden">
+              {pdf.coverImage ? (
+                <img 
+                  src={`/uploads/thumbnails/${pdf.coverImage}`} 
+                  alt={`Capa de ${pdf.title}`} 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <FileText className="text-gray-400 w-5 h-5" />
+                </div>
+              )}
+            </div>
+            <div>
+              <div className="font-medium">{pdf.title}</div>
+              {category && (
+                <Badge variant="outline" className="bg-primary bg-opacity-20 text-primary border-0 text-xs">
+                  {category.name}
+                </Badge>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessor: "isPublic",
+      header: "Visibilidade",
+      cell: (pdf: Pdf) => (
+        <div className="flex items-center">
+          {pdf.isPublic ? (
+            <Badge variant="outline" className="bg-success bg-opacity-20 text-success border-0 flex items-center">
+              <Eye className="mr-1 w-3 h-3" /> Público
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-dark-surface-2 text-gray-400 border-0 flex items-center">
+              <EyeOff className="mr-1 w-3 h-3" /> Privado
+            </Badge>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessor: "views",
+      header: "Visualizações",
+    },
+    {
+      accessor: "downloads",
+      header: "Downloads",
+    },
+    {
+      accessor: "createdAt",
+      header: "Data",
+      cell: (pdf: Pdf) => formatDate(pdf.createdAt),
+    },
+    {
+      accessor: "actions",
+      header: "Ações",
+      cell: (pdf: Pdf) => (
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm" 
+            className="h-8 border-dark-border"
+            onClick={() => window.open(`/pdf/${pdf.slug}`, '_blank')}
+          >
+            Ver
+          </Button>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            className="h-8"
+            onClick={() => handleDeletePdf(pdf)}
+          >
+            Excluir
+          </Button>
+        </div>
+      ),
+    },
+  ];
+  
+  // DMCA columns for DataTable
+  const dmcaColumns = [
+    {
+      accessor: "id",
+      header: "ID",
+    },
+    {
+      accessor: "pdfId",
+      header: "Documento",
+      cell: (dmca: DmcaRequest) => {
+        const relatedPdf = pdfs?.find(pdf => pdf.id === dmca.pdfId);
+        return relatedPdf ? relatedPdf.title : `PDF #${dmca.pdfId}`;
+      }
+    },
+    {
+      accessor: "requestorName",
+      header: "Solicitante",
+    },
+    {
+      accessor: "requestorEmail",
+      header: "Email",
+    },
+    {
+      accessor: "reason",
+      header: "Motivo",
+      cell: (dmca: DmcaRequest) => (
+        <div className="max-w-xs truncate" title={dmca.reason}>
+          {dmca.reason}
+        </div>
+      ),
+    },
+    {
+      accessor: "status",
+      header: "Status",
+      cell: (dmca: DmcaRequest) => {
+        let color = "text-gray-400";
+        let icon = <AlertCircle className="w-4 h-4 mr-1" />;
+        
+        if (dmca.status === "approved") {
+          color = "text-success";
+          icon = <CheckCircle className="w-4 h-4 mr-1" />;
+        } else if (dmca.status === "rejected") {
+          color = "text-destructive";
+          icon = <XCircle className="w-4 h-4 mr-1" />;
+        }
+        
+        return (
+          <div className={`flex items-center ${color} capitalize`}>
+            {icon}
+            {dmca.status}
+          </div>
+        );
+      },
+    },
+    {
+      accessor: "createdAt",
+      header: "Data",
+      cell: (dmca: DmcaRequest) => formatDate(dmca.createdAt),
+    },
+    {
+      accessor: "actions",
+      header: "Ações",
+      cell: (dmca: DmcaRequest) => (
+        <div className="flex space-x-2">
+          {dmca.status === "pending" ? (
+            <>
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="h-8 bg-success hover:bg-success/80"
+                onClick={() => handleUpdateDmca(dmca, "approved")}
+              >
+                Aprovar
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                className="h-8"
+                onClick={() => handleUpdateDmca(dmca, "rejected")}
+              >
+                Rejeitar
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" className="h-8 border-dark-border">
+              Detalhes
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+  
+  return (
+    <div className="container mx-auto px-4 py-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">Painel de Administração</h1>
+        <p className="text-gray-300">Gerencie usuários, documentos e configurações do site</p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="bg-dark-surface border-dark-border">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400">Usuários</h3>
+              <Users className="text-primary w-4 h-4" />
+            </div>
+            <div className="text-2xl font-bold">
+              {isStatsLoading ? "..." : stats?.userCount || 0}
+            </div>
+            <div className="text-sm text-success mt-1">
+              ↑ {Math.floor(Math.random() * 150)} novos este mês
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-dark-surface border-dark-border">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400">Documentos</h3>
+              <FileText className="text-primary w-4 h-4" />
+            </div>
+            <div className="text-2xl font-bold">
+              {isStatsLoading ? "..." : stats?.pdfCount || 0}
+            </div>
+            <div className="text-sm text-success mt-1">
+              ↑ {Math.floor(Math.random() * 300)} novos este mês
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-dark-surface border-dark-border">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400">Armazenamento</h3>
+              <Database className="text-primary w-4 h-4" />
+            </div>
+            <div className="text-2xl font-bold">
+              {isStatsLoading ? "..." : stats?.storageUsage || 0} GB
+            </div>
+            <div className="text-sm text-gray-400 mt-1 mb-3">
+              de 1 TB ({isStatsLoading ? "..." : (((stats?.storageUsage || 0) / 1024) * 100).toFixed(1)}%)
+            </div>
+            <div className="flex space-x-2 mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 w-full border-dark-border text-xs"
+                onClick={() => window.open('/api/admin/database/export', '_blank')}
+              >
+                Exportar DB
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 w-full border-dark-border text-xs"
+                onClick={() => setIsImportDialogOpen(true)}
+              >
+                Importar DB
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-dark-surface border-dark-border">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400">Solicitações DMCA</h3>
+              <Shield className="text-warning w-4 h-4" />
+            </div>
+            <div className="text-2xl font-bold">
+              {isDmcaLoading ? "..." : dmcaRequests?.length || 0}
+            </div>
+            <div className="text-sm text-error mt-1">
+              ↑ {isDmcaLoading ? "..." : dmcaRequests?.filter(req => req.status === "pending").length || 0} pendentes de análise
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full grid grid-cols-5 mb-6">
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="categories">Categorias</TabsTrigger>
+          <TabsTrigger value="pdfs">Documentos</TabsTrigger>
+          <TabsTrigger value="dmca">DMCA</TabsTrigger>
+          <TabsTrigger value="seo">SEO</TabsTrigger>
+        </TabsList>
+        
+        {/* Overview Tab */}
+        <TabsContent value="overview">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2">
+              <Card className="bg-dark-surface border-dark-border">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Atividade recente</CardTitle>
+                    <Select defaultValue="7">
+                      <SelectTrigger className="w-40 bg-dark-surface-2 border-dark-border">
+                        <SelectValue placeholder="Período" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-dark-surface-2 border-dark-border">
+                        <SelectItem value="7">Últimos 7 dias</SelectItem>
+                        <SelectItem value="30">Últimos 30 dias</SelectItem>
+                        <SelectItem value="90">Últimos 90 dias</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-72 bg-dark-surface-2 rounded-lg flex items-center justify-center">
+                    <PieChart className="text-gray-500 w-12 h-12 mr-2" />
+                    <span className="text-gray-400">Gráfico de atividade seria exibido aqui</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div>
+              <Card className="bg-dark-surface border-dark-border">
+                <CardHeader>
+                  <CardTitle>Categorias populares</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isCategoriesLoading ? (
+                    <div className="animate-pulse space-y-3">
+                      <div className="h-4 bg-dark-surface-2 rounded w-full"></div>
+                      <div className="h-4 bg-dark-surface-2 rounded w-full"></div>
+                      <div className="h-4 bg-dark-surface-2 rounded w-full"></div>
+                      <div className="h-4 bg-dark-surface-2 rounded w-full"></div>
+                      <div className="h-4 bg-dark-surface-2 rounded w-full"></div>
+                    </div>
+                  ) : (
+                    stats?.categoryStats?.map((catStat: any) => (
+                      <div key={catStat.id}>
+                        <div className="flex justify-between mb-1">
+                          <span>{catStat.name}</span>
+                          <span>{catStat.percentage}%</span>
+                        </div>
+                        <div className="w-full bg-dark-surface-2 rounded-full h-2.5">
+                          <div 
+                            className="bg-primary h-2.5 rounded-full" 
+                            style={{ width: `${catStat.percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+                <CardFooter>
+                  <Button variant="link" className="text-primary w-full">
+                    Gerenciar categorias
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <Card className="bg-dark-surface border-dark-border">
+              <CardHeader>
+                <CardTitle>Configurações rápidas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isSiteSettingsLoading ? (
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-8 bg-dark-surface-2 rounded w-full"></div>
+                    <div className="h-8 bg-dark-surface-2 rounded w-full"></div>
+                    <div className="h-8 bg-dark-surface-2 rounded w-full"></div>
+                    <div className="h-8 bg-dark-surface-2 rounded w-full"></div>
+                    <div className="h-8 bg-dark-surface-2 rounded w-full"></div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span>Modo de manutenção</span>
+                      <Switch 
+                        checked={siteSettingsData?.maintenanceMode || false}
+                        onCheckedChange={(checked) => {
+                          saveSiteSettingsMutation.mutate({
+                            maintenanceMode: checked
+                          });
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span>Registro de novos usuários</span>
+                      <Switch 
+                        checked={siteSettingsData?.allowRegistration !== false}
+                        onCheckedChange={(checked) => {
+                          saveSiteSettingsMutation.mutate({
+                            allowRegistration: checked
+                          });
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span>Upload público de documentos</span>
+                      <Switch 
+                        checked={siteSettingsData?.allowPublicUploads !== false}
+                        onCheckedChange={(checked) => {
+                          saveSiteSettingsMutation.mutate({
+                            allowPublicUploads: checked
+                          });
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span>Aprovação de documentos</span>
+                      <Switch 
+                        checked={siteSettingsData?.requireApproval || false}
+                        onCheckedChange={(checked) => {
+                          saveSiteSettingsMutation.mutate({
+                            requireApproval: checked
+                          });
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span>Verificação de e-mail</span>
+                      <Switch 
+                        checked={siteSettingsData?.requireEmailVerification !== false}
+                        onCheckedChange={(checked) => {
+                          saveSiteSettingsMutation.mutate({
+                            requireEmailVerification: checked
+                          });
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  variant="link" 
+                  className="text-primary w-full"
+                  onClick={() => setIsAdvancedSettingsOpen(true)}
+                >
+                  Configurações avançadas
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <div className="lg:col-span-2">
+              <Card className="bg-dark-surface border-dark-border">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>SEO e Performance</CardTitle>
+                    <Select defaultValue="30">
+                      <SelectTrigger className="w-40 bg-dark-surface-2 border-dark-border">
+                        <SelectValue placeholder="Período" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-dark-surface-2 border-dark-border">
+                        <SelectItem value="30">Últimos 30 dias</SelectItem>
+                        <SelectItem value="90">Últimos 90 dias</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-dark-surface-2 rounded-lg p-4">
+                      <div className="text-sm text-gray-400 mb-1">Velocidade média de carregamento</div>
+                      <div className="text-2xl font-bold">1.2s</div>
+                      <div className="text-xs text-success mt-1">↑ 8% melhor que mês anterior</div>
+                    </div>
+                    
+                    <div className="bg-dark-surface-2 rounded-lg p-4">
+                      <div className="text-sm text-gray-400 mb-1">Acessos via busca orgânica</div>
+                      <div className="text-2xl font-bold">15,432</div>
+                      <div className="text-xs text-success mt-1">↑ 12% melhor que mês anterior</div>
+                    </div>
+                    
+                    <div className="bg-dark-surface-2 rounded-lg p-4">
+                      <div className="text-sm text-gray-400 mb-1">Palavras-chave indexadas</div>
+                      <div className="text-2xl font-bold">872</div>
+                      <div className="text-xs text-success mt-1">↑ 23 novas palavras-chave</div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Sugestões de otimização</h3>
+                    
+                    <div className="flex items-start space-x-3 p-3 bg-dark-surface-2 rounded-lg">
+                      <AlertCircle className="text-warning w-5 h-5 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium mb-1">Otimize as meta descrições</h4>
+                        <p className="text-sm text-gray-400">25 páginas não possuem meta descrições otimizadas. Adicione descrições com 120-156 caracteres.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3 p-3 bg-dark-surface-2 rounded-lg">
+                      <AlertCircle className="text-warning w-5 h-5 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium mb-1">Adicione textos alternativos em imagens</h4>
+                        <p className="text-sm text-gray-400">43 imagens não possuem texto alternativo (alt). Adicione para melhorar a acessibilidade e SEO.</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="link" className="text-primary w-full">
+                    Ver relatório completo
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+        
+        {/* Users Tab */}
+        <TabsContent value="users">
+          <Card className="bg-dark-surface border-dark-border">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Gerenciar Usuários</CardTitle>
+                <div className="flex gap-2">
+                  <Input 
+                    type="search" 
+                    placeholder="Buscar por nome..." 
+                    className="w-64 bg-dark-surface-2 border-dark-border"
+                  />
+                  <Button 
+                    className="bg-primary hover:bg-primary-dark text-white"
+                    onClick={() => {
+                      const newUsername = prompt("Digite o nome do novo usuário:");
+                      if (!newUsername) return;
+                      
+                      const newPassword = prompt("Digite a senha para o usuário:");
+                      if (!newPassword) return;
+                      
+                      // Criar novo usuário
+                      fetch('/api/users', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          username: newUsername,
+                          password: newPassword,
+                        }),
+                      })
+                      .then(response => {
+                        if (!response.ok) throw new Error('Erro ao criar usuário');
+                        return response.json();
+                      })
+                      .then(() => {
+                        toast({
+                          title: "Usuário criado",
+                          description: `O usuário ${newUsername} foi criado com sucesso.`,
+                        });
+                        // Recarregar a lista de usuários
+                        queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+                      })
+                      .catch(error => {
+                        toast({
+                          title: "Erro ao criar usuário",
+                          description: error.message,
+                          variant: "destructive",
+                        });
+                      });
+                    }}
+                  >
+                    <Plus className="mr-1 w-4 h-4" /> Novo Usuário
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>
+                Lista de todos os usuários registrados na plataforma
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={userColumns}
+                data={users || []}
+                isLoading={isUsersLoading}
+                pagination={{
+                  pageIndex: 0,
+                  pageCount: Math.ceil((users?.length || 0) / 10),
+                  pageSize: 10,
+                  onPageChange: () => {},
+                }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Categories Tab */}
+        <TabsContent value="categories">
+          <Card className="bg-dark-surface border-dark-border">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Gerenciar Categorias</CardTitle>
+                <Button 
+                  className="bg-primary hover:bg-primary-dark text-white"
+                  onClick={() => {
+                    setCategoryToEdit(null);
+                    setCategoryForm({
+                      name: '',
+                      slug: '',
+                      icon: 'folder',
+                      color: '#4f46e5'
+                    });
+                    setIsCategoryDialogOpen(true);
+                  }}
+                >
+                  <Plus className="mr-1 w-4 h-4" /> Nova Categoria
+                </Button>
+              </div>
+              <CardDescription>
+                Gerencie as categorias de documentos da plataforma
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {isCategoriesLoading ? (
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <div key={index} className="animate-pulse">
+                      <div className="bg-dark-surface-2 rounded-lg p-4">
+                        <div className="h-6 bg-dark-surface rounded mb-3 w-3/4"></div>
+                        <div className="h-4 bg-dark-surface rounded mb-2 w-1/2"></div>
+                        <div className="h-8 bg-dark-surface rounded mt-4"></div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  categories?.map(category => (
+                    <div key={category.id} className="bg-dark-surface-2 rounded-lg p-4 border border-dark-border">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-lg">{category.name}</h3>
+                        <Badge className="bg-primary bg-opacity-20 text-primary border-0">
+                          {pdfs?.filter(pdf => pdf.categoryId === category.id).length || 0} docs
+                        </Badge>
+                      </div>
+                      <div className="text-gray-400 text-sm mb-4">
+                        Slug: <span className="font-mono">{category.slug}</span>
+                      </div>
+                      <div className="flex space-x-2 mt-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-dark-border flex-1"
+                          onClick={() => {
+                            setCategoryToEdit(category);
+                            setCategoryForm({
+                              name: category.name,
+                              slug: category.slug,
+                              icon: category.icon || 'folder',
+                              color: category.color || '#4f46e5'
+                            });
+                            setIsCategoryDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-1" /> Editar
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="flex-1"
+                          disabled={category.id === 1} // Não permite excluir a categoria padrão
+                          onClick={() => {
+                            // Verifica se a categoria tem documentos associados
+                            const documentsInCategory = pdfs?.filter(pdf => pdf.categoryId === category.id).length || 0;
+                            if (documentsInCategory > 0) {
+                              toast({
+                                title: "Não é possível excluir",
+                                description: `Esta categoria contém ${documentsInCategory} documento(s). Mova-os para outra categoria primeiro.`,
+                                variant: "destructive"
+                              });
+                            } else {
+                              deleteCategoryMutation.mutate(category.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Excluir
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* PDFs Tab */}
+        <TabsContent value="pdfs">
+          <Card className="bg-dark-surface border-dark-border">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Gerenciar Documentos</CardTitle>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="h-9 flex items-center gap-1"
+                    onClick={() => setIsMultipleUploadDialogOpen(true)}
+                  >
+                    <Plus className="w-4 h-4" /> Upload Múltiplo
+                  </Button>
+                  <Select defaultValue="all">
+                    <SelectTrigger className="w-40 bg-dark-surface-2 border-dark-border">
+                      <SelectValue placeholder="Filtrar por" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-dark-surface-2 border-dark-border">
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="public">Públicos</SelectItem>
+                      <SelectItem value="private">Privados</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <CardDescription>
+                Lista de todos os documentos PDF na plataforma
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={pdfColumns}
+                data={pdfs || []}
+                isLoading={isPdfsLoading}
+                pagination={{
+                  pageIndex: 0,
+                  pageCount: Math.ceil((pdfs?.length || 0) / 10),
+                  pageSize: 10,
+                  onPageChange: () => {},
+                }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* DMCA Tab */}
+        <TabsContent value="dmca">
+          <Card className="bg-dark-surface border-dark-border">
+            <CardHeader>
+              <CardTitle>Solicitações DMCA</CardTitle>
+              <CardDescription>
+                Gerencie solicitações de remoção de conteúdo por violação de direitos autorais
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={dmcaColumns}
+                data={dmcaRequests || []}
+                isLoading={isDmcaLoading}
+                pagination={{
+                  pageIndex: 0,
+                  pageCount: Math.ceil((dmcaRequests?.length || 0) / 10),
+                  pageSize: 10,
+                  onPageChange: () => {},
+                }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* SEO Tab */}
+        <TabsContent value="seo">
+          <SeoSettingsPage />
+        </TabsContent>
+        
+        {/* Auth Tab */}
+        <TabsContent value="auth">
+          <Card className="bg-dark-surface border-dark-border">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Configurações de Autenticação</CardTitle>
+                <Button 
+                  className="bg-primary hover:bg-primary-dark text-white"
+                  onClick={() => {
+                    saveAuthSettingsMutation.mutate(authSettings);
+                  }}
+                  disabled={saveAuthSettingsMutation.isPending}
+                >
+                  {saveAuthSettingsMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Salvar configurações
+                </Button>
+              </div>
+              <CardDescription>
+                Configure os métodos de autenticação e integração com serviços externos
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <h3 className="text-lg font-medium mb-4">Autenticação via Google</h3>
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Habilitar login via Google</span>
+                    <Switch 
+                      checked={authSettings.googleEnabled}
+                      onCheckedChange={(checked) => 
+                        setAuthSettings({...authSettings, googleEnabled: checked})
+                      }
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="googleClientId">Google Client ID</Label>
+                      <Input
+                        id="googleClientId"
+                        className="bg-dark-surface-2 border-dark-border"
+                        placeholder="ID do cliente do Google OAuth2"
+                        value={authSettings.googleClientId}
+                        onChange={(e) => 
+                          setAuthSettings({...authSettings, googleClientId: e.target.value})
+                        }
+                      />
+                      <p className="text-xs text-gray-400">
+                        Obtenha no Google Cloud Console criando um projeto e habilitando OAuth.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="googleClientSecret">Google Client Secret</Label>
+                      <Input
+                        id="googleClientSecret"
+                        className="bg-dark-surface-2 border-dark-border"
+                        placeholder="Chave secreta do Google OAuth2"
+                        type="password"
+                        value={authSettings.googleClientSecret}
+                        onChange={(e) => 
+                          setAuthSettings({...authSettings, googleClientSecret: e.target.value})
+                        }
+                      />
+                      <p className="text-xs text-gray-400">
+                        Nunca compartilhe este segredo com outros usuários ou armazene no lado do cliente.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="googleCallbackUrl">URL de Callback</Label>
+                    <Input
+                      id="googleCallbackUrl"
+                      className="bg-dark-surface-2 border-dark-border"
+                      placeholder="URL de retorno após autenticação"
+                      value={authSettings.googleCallbackUrl}
+                      onChange={(e) => 
+                        setAuthSettings({...authSettings, googleCallbackUrl: e.target.value})
+                      }
+                    />
+                    <p className="text-xs text-gray-400">
+                      URL que o Google redirecionará após o login. Deve corresponder ao URL configurado no Console Google.
+                      Normalmente é algo como: https://seu-site.com/api/auth/google/callback
+                    </p>
+                  </div>
+                </div>
+                
+                <Separator className="my-6" />
+                
+                <h3 className="text-lg font-medium mb-4">Configurações de Email</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Habilitar envio de emails</span>
+                    <Switch 
+                      checked={authSettings.emailEnabled}
+                      onCheckedChange={(checked) => 
+                        setAuthSettings({...authSettings, emailEnabled: checked})
+                      }
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="emailService">Serviço de Email</Label>
+                    <Select 
+                      value={authSettings.emailService} 
+                      onValueChange={(value) => 
+                        setAuthSettings({...authSettings, emailService: value})
+                      }
+                    >
+                      <SelectTrigger className="bg-dark-surface-2 border-dark-border">
+                        <SelectValue placeholder="Selecione um serviço" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-dark-surface-2 border-dark-border">
+                        <SelectItem value="smtp">SMTP</SelectItem>
+                        <SelectItem value="sendgrid">SendGrid</SelectItem>
+                        <SelectItem value="mailgun">Mailgun</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {authSettings.emailService === 'smtp' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="emailHost">Servidor SMTP</Label>
+                        <Input
+                          id="emailHost"
+                          className="bg-dark-surface-2 border-dark-border"
+                          placeholder="smtp.example.com"
+                          value={authSettings.emailHost}
+                          onChange={(e) => 
+                            setAuthSettings({...authSettings, emailHost: e.target.value})
+                          }
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="emailPort">Porta SMTP</Label>
+                        <Input
+                          id="emailPort"
+                          className="bg-dark-surface-2 border-dark-border"
+                          placeholder="587"
+                          type="number"
+                          value={authSettings.emailPort.toString()}
+                          onChange={(e) => 
+                            setAuthSettings({...authSettings, emailPort: parseInt(e.target.value)})
+                          }
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="emailUser">Usuário SMTP</Label>
+                        <Input
+                          id="emailUser"
+                          className="bg-dark-surface-2 border-dark-border"
+                          placeholder="seu@email.com"
+                          value={authSettings.emailUser}
+                          onChange={(e) => 
+                            setAuthSettings({...authSettings, emailUser: e.target.value})
+                          }
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="emailPassword">Senha SMTP</Label>
+                        <Input
+                          id="emailPassword"
+                          className="bg-dark-surface-2 border-dark-border"
+                          placeholder="Sua senha"
+                          type="password"
+                          value={authSettings.emailPassword}
+                          onChange={(e) => 
+                            setAuthSettings({...authSettings, emailPassword: e.target.value})
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="emailFrom">Email "De"</Label>
+                    <Input
+                      id="emailFrom"
+                      className="bg-dark-surface-2 border-dark-border"
+                      placeholder="noreply@seusite.com"
+                      value={authSettings.emailFrom}
+                      onChange={(e) => 
+                        setAuthSettings({...authSettings, emailFrom: e.target.value})
+                      }
+                    />
+                    <p className="text-xs text-gray-400">
+                      Endereço de email exibido como remetente dos emails enviados pelo sistema.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Ads Tab */}
+        <TabsContent value="ads">
+          <Card className="bg-dark-surface border-dark-border">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Configurações de Anúncios</CardTitle>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-9 flex items-center gap-1"
+                    onClick={() => {
+                      // Navegar para a página de visualização de anúncios
+                      window.location.href = '/admin/ad-preview';
+                    }}
+                  >
+                    <Search className="w-4 h-4" /> Visualizar exemplos
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>
+                Gerencie como e onde os anúncios são exibidos no site
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AdSettingsPanel />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Payments Tab */}
+        <TabsContent value="payments" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Credenciais do Mercado Pago */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Credenciais do Mercado Pago</CardTitle>
+                <CardDescription>
+                  Configure as credenciais para integração com o Mercado Pago.
+                  Obtenha seu token de acesso no painel do Mercado Pago.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="access-token">Token de Acesso</Label>
+                    <Input
+                      id="access-token"
+                      type="password"
+                      value={paymentSettings.accessToken}
+                      onChange={(e) => setPaymentSettings({...paymentSettings, accessToken: e.target.value})}
+                      placeholder="••••••••••••••••••••••••••••••••"
+                      className="bg-dark-surface-2 border-dark-border mt-1"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Este token é usado para processar pagamentos. Nunca compartilhe este token.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setIsPaymentCredentialsDialogOpen(true);
+                  }}
+                >
+                  Gerenciar Credenciais
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            {/* Assinaturas */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Assinaturas Ativas</CardTitle>
+                <CardDescription>
+                  Visualize e gerencie as assinaturas ativas no sistema.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="rounded-md bg-dark-surface-2 p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-semibold">Assinaturas Premium</h3>
+                        <p className="text-sm text-gray-400">Usuários com plano premium ativo</p>
+                      </div>
+                      <Badge variant="default" className="bg-primary">
+                        {isSubscriptionsLoading ? "..." : 
+                          Array.isArray(subscriptions) ? 
+                            subscriptions.filter(sub => sub.status === "active" && sub.planId !== 1).length : 0}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="rounded-md bg-dark-surface-2 p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-semibold">Assinaturas Gratuitas</h3>
+                        <p className="text-sm text-gray-400">Usuários com plano gratuito</p>
+                      </div>
+                      <Badge variant="outline">
+                        {isSubscriptionsLoading ? "..." : 
+                          Array.isArray(subscriptions) ? 
+                            subscriptions.filter(sub => sub.status === "active" && sub.planId === 1).length : 0}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => {
+                    // Exibir todas as assinaturas
+                    toast({
+                      title: "Assinaturas",
+                      description: "Listagem detalhada de assinaturas em implementação",
+                    });
+                  }}
+                >
+                  Ver Todas Assinaturas
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            {/* Planos */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Planos de Assinatura</CardTitle>
+                  <Button
+                    onClick={() => {
+                      setIsPlansManagementDialogOpen(true);
+                    }}
+                  >
+                    Gerenciar Planos
+                  </Button>
+                </div>
+                <CardDescription>
+                  Configure os planos disponíveis para assinatura.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-bold text-lg">Gratuito</h3>
+                        <Badge variant="outline" className="mt-1">Padrão</Badge>
+                      </div>
+                      <div className="text-xl font-bold">R$ 0,00</div>
+                    </div>
+                    <div className="space-y-2 text-sm mb-4">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>2GB de armazenamento</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>3 downloads por dia</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>Visualização online</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4 border-primary bg-primary/5">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-bold text-lg">Premium</h3>
+                        <Badge className="mt-1 bg-primary">Recomendado</Badge>
+                      </div>
+                      <div>
+                        <div className="text-xl font-bold">R$ 19,90</div>
+                        <div className="text-xs text-right">por mês</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm mb-4">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>10GB de armazenamento</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>Downloads ilimitados</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>Sem anúncios</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Delete PDF Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-dark-surface border-dark-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir documento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o documento "{selectedPdf?.title}"?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-dark-border bg-dark-surface-2 hover:bg-dark-surface text-white">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={confirmDeletePdf}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* DMCA Update Confirmation Dialog */}
+      <AlertDialog open={isDmcaDialogOpen} onOpenChange={setIsDmcaDialogOpen}>
+        <AlertDialogContent className="bg-dark-surface border-dark-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {dmcaStatus === "approved" ? "Aprovar" : "Rejeitar"} solicitação DMCA
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {dmcaStatus === "approved" 
+                ? "Aprovar esta solicitação irá remover o documento da plataforma. Esta ação não pode ser desfeita."
+                : "Rejeitar esta solicitação manterá o documento disponível na plataforma."
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-dark-border bg-dark-surface-2 hover:bg-dark-surface text-white">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className={dmcaStatus === "approved" ? "bg-success hover:bg-success/90" : "bg-destructive hover:bg-destructive/90"}
+              onClick={confirmUpdateDmca}
+            >
+              {dmcaStatus === "approved" ? "Aprovar" : "Rejeitar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Payment Credentials Dialog */}
+      <Dialog open={isPaymentCredentialsDialogOpen} onOpenChange={setIsPaymentCredentialsDialogOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Credenciais de Pagamento</DialogTitle>
+            <DialogDescription>
+              Configure as credenciais para integração com o Mercado Pago
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="mp-access-token">Token de Acesso do Mercado Pago</Label>
+                <Input 
+                  id="mp-access-token"
+                  type="password"
+                  value={paymentSettings.accessToken} 
+                  onChange={(e) => setPaymentSettings({...paymentSettings, accessToken: e.target.value})}
+                  className="bg-dark-surface-2 border-dark-border mt-1" 
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Obtenha seu token de acesso no <a href="https://www.mercadopago.com.br/developers/panel/credentials" target="_blank" className="text-primary hover:underline">painel de desenvolvedores do Mercado Pago</a>.
+                </p>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="test-mode"
+                  checked={paymentSettings.testMode}
+                  onCheckedChange={(checked) => 
+                    setPaymentSettings({...paymentSettings, testMode: checked === true})
+                  }
+                />
+                <label
+                  htmlFor="test-mode"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Modo de Teste
+                </label>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Em modo de teste, as transações não serão processadas e nenhum valor será cobrado.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentCredentialsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              type="submit"
+              onClick={() => savePaymentSettingsMutation.mutate(paymentSettings)}
+              disabled={savePaymentSettingsMutation.isPending}
+            >
+              {savePaymentSettingsMutation.isPending ? "Salvando..." : "Salvar Credenciais"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Plans Management Dialog */}
+      <Dialog open={isPlansManagementDialogOpen} onOpenChange={setIsPlansManagementDialogOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Planos de Assinatura</DialogTitle>
+            <DialogDescription>
+              Configure os planos disponíveis e suas características
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="space-y-6">
+              <div className="bg-dark-surface-2 p-4 rounded-md border border-dark-border">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-lg">Plano Gratuito</h3>
+                  <Badge variant="outline" className="mt-1">Padrão</Badge>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="free-storage">Armazenamento (GB)</Label>
+                      <Input 
+                        id="free-storage"
+                        type="number"
+                        defaultValue={plansData && Array.isArray(plansData) && plansData.length > 0 
+                          ? ((plansData.find(p => p.id === 1)?.storageLimit || 2048) / 1024).toString() 
+                          : "2"}
+                        className="bg-dark-surface border-dark-border mt-1" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="free-downloads">Downloads Diários</Label>
+                      <Input 
+                        id="free-downloads"
+                        type="number"
+                        defaultValue={plansData && Array.isArray(plansData) && plansData.length > 0 
+                          ? (plansData.find(p => p.id === 1)?.downloadLimit || 3).toString() 
+                          : "3"}
+                        className="bg-dark-surface border-dark-border mt-1" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-dark-surface-2 p-4 rounded-md border border-primary">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-lg">Plano Premium</h3>
+                  <Badge className="mt-1 bg-primary">Recomendado</Badge>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="premium-storage">Armazenamento (GB)</Label>
+                      <Input 
+                        id="premium-storage"
+                        type="number"
+                        defaultValue={plansData && Array.isArray(plansData) && plansData.length > 1 
+                          ? ((plansData.find(p => p.id === 2)?.storageLimit || 10240) / 1024).toString() 
+                          : "10"}
+                        className="bg-dark-surface border-dark-border mt-1" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="premium-downloads">Downloads Diários</Label>
+                      <Input 
+                        id="premium-downloads"
+                        type="number"
+                        defaultValue={plansData && Array.isArray(plansData) && plansData.length > 1 
+                          ? (plansData.find(p => p.id === 2)?.downloadLimit || -1).toString() 
+                          : "-1"}
+                        className="bg-dark-surface border-dark-border mt-1" 
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        Use -1 para downloads ilimitados
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="premium-monthly">Preço Mensal (R$)</Label>
+                      <Input 
+                        id="premium-monthly"
+                        type="number"
+                        defaultValue={plansData && Array.isArray(plansData) && plansData.length > 1 
+                          ? (plansData.find(p => p.id === 2)?.price || 19.90).toString() 
+                          : "19.90"}
+                        step="0.01"
+                        className="bg-dark-surface border-dark-border mt-1" 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="premium-yearly">Preço Anual (R$)</Label>
+                      <Input 
+                        id="premium-yearly"
+                        type="number"
+                        defaultValue={plansData && Array.isArray(plansData) && plansData.length > 1 
+                          ? (plansData.find(p => p.id === 2)?.annualPrice || 149.00).toString() 
+                          : "149.00"}
+                        step="0.01"
+                        className="bg-dark-surface border-dark-border mt-1" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPlansManagementDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => {
+                // Obter valores dos campos
+                const freeStorage = parseFloat(document.getElementById('free-storage')?.value || '2');
+                const freeDownloads = parseInt(document.getElementById('free-downloads')?.value || '3');
+                const premiumStorage = parseFloat(document.getElementById('premium-storage')?.value || '10');
+                const premiumDownloads = parseInt(document.getElementById('premium-downloads')?.value || '-1');
+                const premiumMonthly = parseFloat(document.getElementById('premium-monthly')?.value || '19.90');
+                const premiumYearly = parseFloat(document.getElementById('premium-yearly')?.value || '149.00');
+                
+                // Criar planos atualizados
+                const plans = [
+                  {
+                    id: 1, // Plano gratuito tem ID 1
+                    storageLimit: freeStorage * 1024, // Converter GB para MB
+                    downloadLimit: freeDownloads
+                  },
+                  {
+                    id: 2, // Plano premium tem ID 2
+                    storageLimit: premiumStorage * 1024, // Converter GB para MB
+                    downloadLimit: premiumDownloads,
+                    price: premiumMonthly,
+                    annualPrice: premiumYearly
+                  }
+                ];
+                
+                // Chamar mutation
+                updatePlansMutation.mutate(plans);
+              }}
+            >
+              Salvar Planos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Database Import Dialog */}
+      <AlertDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <AlertDialogContent className="bg-dark-surface border-dark-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Importar Banco de Dados</AlertDialogTitle>
+            <AlertDialogDescription className="py-2">
+              <p className="mb-4">
+                Selecione um arquivo de backup JSON para importar. Todos os dados atuais serão substituídos pelos dados do arquivo.
+              </p>
+              <div className="bg-dark-surface-2 p-3 rounded-md border border-red-500/30 mb-4">
+                <p className="text-red-400 font-medium mb-1">Atenção:</p>
+                <p className="text-sm">
+                  Esta operação substituirá completamente todos os dados atuais do banco de dados. 
+                  Recomendamos realizar um backup antes de prosseguir.
+                </p>
+              </div>
+              
+              <div className="border border-dashed border-dark-border rounded-md p-6 flex flex-col items-center justify-center bg-dark-surface-2">
+                {importFile ? (
+                  <div className="flex flex-col items-center">
+                    <FileText className="text-primary w-12 h-12 mb-2" />
+                    <p className="font-medium truncate max-w-full">{importFile.name}</p>
+                    <p className="text-sm text-gray-400">
+                      {(importFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => setImportFile(null)}
+                    >
+                      Trocar arquivo
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      id="database-import"
+                      className="hidden"
+                      accept=".json"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setImportFile(file);
+                      }}
+                    />
+                    <label
+                      htmlFor="database-import"
+                      className="flex flex-col items-center cursor-pointer"
+                    >
+                      <Database className="text-gray-400 w-12 h-12 mb-2" />
+                      <p className="font-medium">Clique para selecionar</p>
+                      <p className="text-sm text-gray-400">
+                        Arraste e solte ou clique para selecionar o arquivo JSON de backup
+                      </p>
+                    </label>
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-dark-border bg-dark-surface-2 hover:bg-dark-surface text-white">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => {
+                if (importFile) {
+                  importDatabaseMutation.mutate(importFile);
+                }
+              }}
+              disabled={!importFile || importDatabaseMutation.isPending}
+            >
+              {importDatabaseMutation.isPending ? "Importando..." : "Importar Dados"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* SEO Settings Dialog */}
+      <Dialog open={isSeoDialogOpen} onOpenChange={setIsSeoDialogOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Configurações de SEO</DialogTitle>
+            <DialogDescription>
+              Configure as meta tags e otimizações para mecanismos de busca
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Informações do Site</h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Título do Site</label>
+                    <Input 
+                      value={seoSettings.siteTitle} 
+                      onChange={(e) => setSeoSettings({...seoSettings, siteTitle: e.target.value})}
+                      className="bg-dark-surface-2 border-dark-border" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Twitter Handle</label>
+                    <Input 
+                      value={seoSettings.twitterHandle || ''} 
+                      onChange={(e) => setSeoSettings({...seoSettings, twitterHandle: e.target.value})}
+                      className="bg-dark-surface-2 border-dark-border" 
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Descrição do Site</label>
+                  <Textarea 
+                    value={seoSettings.siteDescription} 
+                    onChange={(e) => setSeoSettings({...seoSettings, siteDescription: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border h-20" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Palavras-chave (separadas por vírgula)</label>
+                  <Textarea 
+                    value={seoSettings.siteKeywords} 
+                    onChange={(e) => setSeoSettings({...seoSettings, siteKeywords: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border h-20" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Imagem Open Graph (URL)</label>
+                  <Input 
+                    value={seoSettings.ogImage} 
+                    onChange={(e) => setSeoSettings({...seoSettings, ogImage: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Formato de Título dos PDFs</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Template de Título para Meta Tags</label>
+                  <Textarea 
+                    value={seoSettings.pdfTitleFormat} 
+                    onChange={(e) => setSeoSettings({...seoSettings, pdfTitleFormat: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border font-mono" 
+                    placeholder="Exemplo: ${title} - PDFxandria"
+                  />
+                  <p className="text-sm text-gray-400 mt-1">
+                    Use <code className="bg-dark-surface-2 px-1 rounded">{'${title}'}</code> como placeholder para o título do PDF.
+                  </p>
+                </div>
+                <div className="bg-dark-surface-2 p-3 rounded-md border border-dark-border mt-2">
+                  <p className="text-sm font-medium mb-1">Pré-visualização:</p>
+                  <p className="text-sm font-mono">{seoSettings.pdfTitleFormat?.replace('${title}', 'O Manifesto Comunista')}</p>
+                  <p className="text-xs text-gray-400 mt-2">O valor <code className="bg-dark-surface px-1 rounded">{'${title}'}</code> será substituído pelo título real do PDF.</p>
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Verificação de Propriedade e Análise</h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Google Search Console (meta tag)</label>
+                    <Input 
+                      value={seoSettings.googleVerification || ''} 
+                      onChange={(e) => setSeoSettings({...seoSettings, googleVerification: e.target.value})}
+                      className="bg-dark-surface-2 border-dark-border" 
+                      placeholder="google-site-verification=..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Bing Webmaster Tools (meta tag)</label>
+                    <Input 
+                      value={seoSettings.bingVerification || ''} 
+                      onChange={(e) => setSeoSettings({...seoSettings, bingVerification: e.target.value})}
+                      className="bg-dark-surface-2 border-dark-border" 
+                      placeholder="msvalidate.01=..."
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">ID do Google Analytics</label>
+                  <Input 
+                    value={seoSettings.gaTrackingId || ''} 
+                    onChange={(e) => setSeoSettings({...seoSettings, gaTrackingId: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                    placeholder="G-XXXXXXXXXX"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Integração com IA</h3>
+              <div>
+                <label className="block text-sm font-medium mb-1">Chave de API da OpenAI</label>
+                <Input 
+                  value={seoSettings.openaiApiKey || ''} 
+                  onChange={(e) => setSeoSettings({...seoSettings, openaiApiKey: e.target.value})}
+                  className="bg-dark-surface-2 border-dark-border font-mono"
+                  type="password"
+                  placeholder="sk-..."
+                />
+                <p className="text-sm text-gray-400 mt-1">
+                  A chave de API da OpenAI é usada para otimizar títulos e descrições de PDFs. Deixe em branco para desativar esta funcionalidade.
+                </p>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Arquivo robots.txt</h3>
+              <div>
+                <Textarea 
+                  value={seoSettings.robotsTxt} 
+                  onChange={(e) => setSeoSettings({...seoSettings, robotsTxt: e.target.value})}
+                  className="bg-dark-surface-2 border-dark-border h-40 font-mono text-sm" 
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsSeoDialogOpen(false)}
+              className="border-dark-border"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => saveSeoSettingsMutation.mutate(seoSettings)}
+              disabled={saveSeoSettingsMutation.isPending}
+              className="bg-primary hover:bg-primary-dark"
+            >
+              {saveSeoSettingsMutation.isPending ? "Salvando..." : "Salvar configurações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Advanced Settings Dialog */}
+      <Dialog open={isAdvancedSettingsOpen} onOpenChange={setIsAdvancedSettingsOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Configurações Avançadas</DialogTitle>
+            <DialogDescription>
+              Configure as opções avançadas do sistema
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center">
+                <Settings className="mr-2 h-5 w-5" /> Configurações Gerais
+              </h3>
+              <div className="space-y-4 px-1">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome do Site</label>
+                    <Input defaultValue="PDFxandria" className="bg-dark-surface-2 border-dark-border" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">URL do Site</label>
+                    <Input defaultValue="https://pdfxandria.replit.app" className="bg-dark-surface-2 border-dark-border" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Descrição do Site</label>
+                  <Textarea defaultValue="Plataforma para compartilhamento de documentos PDF" className="bg-dark-surface-2 border-dark-border" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Email de Contato</label>
+                    <Input defaultValue="contato@pdfxandria.com" className="bg-dark-surface-2 border-dark-border" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Email para Notificações</label>
+                    <Input defaultValue="notificacoes@pdfxandria.com" className="bg-dark-surface-2 border-dark-border" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center">
+                <Search className="mr-2 h-5 w-5" /> Configurações de SEO
+              </h3>
+              <div className="px-1">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm">Configurações de metatags, OpenGraph e informações para indexação</span>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="bg-primary hover:bg-primary/90" 
+                    onClick={() => {
+                      // Obter as configurações atuais da API
+                      fetch('/api/seo')
+                        .then(response => response.json())
+                        .then(data => {
+                          // Atualizar o estado com os valores atuais
+                          setSeoSettings({
+                            siteTitle: data.siteTitle || 'PDFxandria',
+                            siteDescription: data.siteDescription || 'Compartilhe e descubra documentos em PDF',
+                            siteKeywords: data.siteKeywords || 'pdf, documentos, compartilhamento',
+                            ogImage: data.ogImage || '/generated-icon.png',
+                            twitterHandle: data.twitterHandle || '@pdfxandria',
+                            googleVerification: data.googleVerification || '',
+                            bingVerification: data.bingVerification || '',
+                            robotsTxt: data.robotsTxt || 'User-agent: *\nDisallow: /admin\nDisallow: /uploads/pdfs/\nAllow: /uploads/thumbnails/\nSitemap: /sitemap.xml',
+                            gaTrackingId: data.gaTrackingId || '',
+                            pdfTitleFormat: data.pdfTitleFormat || '${title} em PDF ou Leia Online',
+                            openaiApiKey: data.openaiApiKey || '',
+                          });
+                          
+                          // Fechar as configurações avançadas e abrir o diálogo de SEO
+                          setIsAdvancedSettingsOpen(false);
+                          setIsSeoDialogOpen(true);
+                        })
+                        .catch(error => {
+                          console.error('Erro ao obter configurações de SEO:', error);
+                          toast({
+                            title: "Erro",
+                            description: "Não foi possível carregar as configurações de SEO.",
+                            variant: "destructive",
+                          });
+                        });
+                    }}
+                  >
+                    Gerenciar SEO
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center">
+                <Shield className="mr-2 h-5 w-5" /> Segurança e Privacidade
+              </h3>
+              <div className="space-y-4 px-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Autenticação de dois fatores</p>
+                    <p className="text-sm text-gray-400">Habilitar 2FA para todos os administradores</p>
+                  </div>
+                  <Switch />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">CAPTCHA no registro</p>
+                    <p className="text-sm text-gray-400">Exigir CAPTCHA no cadastro de novos usuários</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Limite de tentativas de login</p>
+                    <p className="text-sm text-gray-400">Limitar tentativas de login (5 por hora)</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Expiração de sessão</p>
+                    <p className="text-sm text-gray-400">Encerrar sessões inativas após 1 hora</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center">
+                <Database className="mr-2 h-5 w-5" /> Cache e Performance
+              </h3>
+              <div className="space-y-4 px-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Cache de consultas</p>
+                    <p className="text-sm text-gray-400">Armazenar em cache resultados frequentes</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Compressão de imagens</p>
+                    <p className="text-sm text-gray-400">Comprimir automaticamente imagens enviadas</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Minificação de HTML/CSS/JS</p>
+                    <p className="text-sm text-gray-400">Minificar recursos estáticos</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAdvancedSettingsOpen(false)} className="border-dark-border">
+              Cancelar
+            </Button>
+            <Button onClick={() => saveAdvancedSettingsMutation.mutate({})}>
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Multiple Upload Dialog */}
+      <Dialog open={isMultipleUploadDialogOpen} onOpenChange={setIsMultipleUploadDialogOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Upload Múltiplo de PDFs</DialogTitle>
+            <DialogDescription>
+              Selecione múltiplos arquivos PDF para enviar de uma só vez
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            {isCheckingDuplicates && (
+              <div className="flex items-center justify-center p-4 mb-4 bg-primary/10 rounded-lg">
+                <Loader2 className="h-5 w-5 text-primary animate-spin mr-2" />
+                <p className="text-sm">Verificando arquivos duplicados...</p>
+              </div>
+            )}
+            
+            <div className="border border-dashed border-dark-border rounded-md p-6 flex flex-col items-center justify-center bg-dark-surface-2">
+              {multipleUploadFiles.length > 0 ? (
+                <div className="w-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-medium">{multipleUploadFiles.length} arquivos selecionados</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setMultipleUploadFiles([])}
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto space-y-2 mb-4">
+                    {multipleUploadFiles.map((file, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center p-2 bg-dark-surface rounded"
+                      >
+                        <FileText className="text-primary w-4 h-4 mr-2" />
+                        <div className="flex-1 truncate">{file.name}</div>
+                        <div className="text-gray-400 text-sm">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="p-3 bg-slate-800/50 rounded-md text-xs text-slate-300">
+                    <p className="font-medium mb-1">Você tem duas opções para continuar:</p>
+                    <ol className="list-decimal pl-5 space-y-1">
+                      <li><span className="text-green-400 font-medium">Recomendado:</span> Clique em "Editar Detalhes" para personalizar os metadados (título e descrição) de cada arquivo antes do upload.</li>
+                      <li>Alternativa: Clique em "Enviar sem editar metadados" para fazer o upload dos arquivos com os dados extraídos automaticamente.</li>
+                    </ol>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="file"
+                    id="multiple-pdf-upload"
+                    className="hidden"
+                    accept=".pdf"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length > 0) setMultipleUploadFiles(files);
+                    }}
+                  />
+                  <label
+                    htmlFor="multiple-pdf-upload"
+                    className="flex flex-col items-center cursor-pointer"
+                  >
+                    <FileText className="text-gray-400 w-12 h-12 mb-2" />
+                    <p className="font-medium">Clique para selecionar PDFs</p>
+                    <p className="text-sm text-gray-400">
+                      Arraste e solte ou clique para selecionar múltiplos arquivos PDF
+                    </p>
+                  </label>
+                </>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Categoria</label>
+                <Select 
+                  defaultValue={multipleUploadCategory.toString()} 
+                  onValueChange={(value) => setMultipleUploadCategory(parseInt(value))}
+                >
+                  <SelectTrigger className="bg-dark-surface-2 border-dark-border">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-dark-surface-2 border-dark-border">
+                    {categories?.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="multiple-upload-is-public"
+                  checked={multipleUploadIsPublic}
+                  onCheckedChange={setMultipleUploadIsPublic}
+                />
+                <label 
+                  htmlFor="multiple-upload-is-public"
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  Documentos públicos (visíveis para todos)
+                </label>
+              </div>
+              
+              {/* Opções avançadas */}
+              <div className="w-full border rounded-md border-dark-border p-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium flex items-center">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Opções avançadas
+                  </h4>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setAdvancedOptionsOpen(!advancedOptionsOpen)}
+                  >
+                    {advancedOptionsOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    <span className="sr-only">Toggle</span>
+                  </Button>
+                </div>
+                
+                {advancedOptionsOpen && (
+                  <div className="pt-2 space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="skip-duplicates"
+                        checked={skipDuplicates}
+                        onCheckedChange={setSkipDuplicates}
+                      />
+                      <label 
+                        htmlFor="skip-duplicates"
+                        className="text-sm cursor-pointer"
+                      >
+                        Ignorar arquivos duplicados
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="use-ai-optimization"
+                        checked={useAIOptimization}
+                        onCheckedChange={setUseAIOptimization}
+                      />
+                      <label 
+                        htmlFor="use-ai-optimization"
+                        className="text-sm cursor-pointer"
+                      >
+                        Otimizar títulos e descrições com IA
+                      </label>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm mb-1">
+                        Prefixo para títulos
+                      </label>
+                      <Input
+                        placeholder="Ex: Livro: ou Manual:"
+                        value={prefixTitle}
+                        onChange={(e) => setPrefixTitle(e.target.value)}
+                        className="bg-dark-surface-2 border-dark-border"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm mb-1">
+                        Tags/palavras-chave (separadas por vírgula)
+                      </label>
+                      <Input
+                        placeholder="Ex: educação, pdf, livro"
+                        value={tagKeywords}
+                        onChange={(e) => setTagKeywords(e.target.value)}
+                        className="bg-dark-surface-2 border-dark-border"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsMultipleUploadDialogOpen(false)} 
+              className="border-dark-border"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={prepareFilesForEditing}
+              disabled={multipleUploadFiles.length === 0 || extractPdfMetadataMutation.isPending}
+              className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+            >
+              {extractPdfMetadataMutation.isPending ? (
+                <>Processando...</>
+              ) : (
+                <>
+                  <Edit className="w-4 h-4 mr-1" /> Editar Detalhes (Recomendado)
+                </>
+              )}
+            </Button>
+            <Button 
+              onClick={() => uploadMultiplePdfsMutation.mutate({
+                files: multipleUploadFiles,
+                categoryId: multipleUploadCategory,
+                isPublic: multipleUploadIsPublic,
+                options: {
+                  skipDuplicates,
+                  useAIOptimization,
+                  prefixTitle,
+                  tagKeywords
+                }
+              })}
+              disabled={multipleUploadFiles.length === 0 || uploadMultiplePdfsMutation.isPending}
+              className="flex items-center gap-1"
+            >
+              {uploadMultiplePdfsMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" /> 
+                  Enviando... {uploadProgress > 0 ? `(${uploadProgress}%)` : ''}
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" /> Enviar sem editar metadados
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Files Dialog */}
+      <Dialog open={isEditFilesDialogOpen} onOpenChange={setIsEditFilesDialogOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Editar Arquivos antes do Upload</DialogTitle>
+            <DialogDescription>
+              Personalize os detalhes dos arquivos selecionados antes de enviá-los
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editableFiles.length > 0 && (
+            <div className="grid gap-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Arquivo {currentEditingFileIndex + 1} de {editableFiles.length}</span>
+                  <span className="text-sm text-gray-400">{editableFiles[currentEditingFileIndex]?.originalName}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentEditingFileIndex(prev => Math.max(0, prev - 1))}
+                    disabled={currentEditingFileIndex === 0}
+                    className="border-dark-border"
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentEditingFileIndex(prev => Math.min(editableFiles.length - 1, prev + 1))}
+                    disabled={currentEditingFileIndex === editableFiles.length - 1}
+                    className="border-dark-border"
+                  >
+                    Próximo
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Título</label>
+                  <Input
+                    value={editableFiles[currentEditingFileIndex]?.title || ''}
+                    onChange={(e) => {
+                      const newFiles = [...editableFiles];
+                      newFiles[currentEditingFileIndex] = {
+                        ...newFiles[currentEditingFileIndex],
+                        title: e.target.value,
+                        isEdited: true
+                      };
+                      setEditableFiles(newFiles);
+                    }}
+                    className="bg-dark-surface-2 border-dark-border"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Descrição</label>
+                  <Textarea
+                    value={editableFiles[currentEditingFileIndex]?.description || ''}
+                    onChange={(e) => {
+                      const newFiles = [...editableFiles];
+                      newFiles[currentEditingFileIndex] = {
+                        ...newFiles[currentEditingFileIndex],
+                        description: e.target.value,
+                        isEdited: true
+                      };
+                      setEditableFiles(newFiles);
+                    }}
+                    className="bg-dark-surface-2 border-dark-border"
+                    rows={5}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Categoria</label>
+                  <Select 
+                    defaultValue={multipleUploadCategory.toString()} 
+                    onValueChange={(value) => setMultipleUploadCategory(parseInt(value))}
+                  >
+                    <SelectTrigger className="bg-dark-surface-2 border-dark-border">
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-dark-surface-2 border-dark-border">
+                      {categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="edit-upload-is-public"
+                    checked={multipleUploadIsPublic}
+                    onCheckedChange={setMultipleUploadIsPublic}
+                  />
+                  <label 
+                    htmlFor="edit-upload-is-public"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Documentos públicos (visíveis para todos)
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsEditFilesDialogOpen(false);
+                setIsMultipleUploadDialogOpen(true);
+              }} 
+              className="border-dark-border"
+            >
+              Voltar
+            </Button>
+            <Button 
+              onClick={() => {
+                // Preparar os metadados editados
+                const metadata = editableFiles.map(file => ({
+                  title: file.title,
+                  description: file.description
+                }));
+                
+                // Usar os arquivos originais para upload
+                const files = editableFiles.map(item => item.file);
+                
+                // Enviar via mutação com opções avançadas
+                uploadMultiplePdfsMutation.mutate({
+                  files,
+                  categoryId: multipleUploadCategory,
+                  isPublic: multipleUploadIsPublic,
+                  metadata,
+                  options: {
+                    skipDuplicates,
+                    useAIOptimization,
+                    prefixTitle,
+                    tagKeywords
+                  }
+                });
+              }}
+              disabled={editableFiles.length === 0 || uploadMultiplePdfsMutation.isPending}
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
+            >
+              {uploadMultiplePdfsMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" /> 
+                  Enviando... {uploadProgress > 0 ? `(${uploadProgress}%)` : ''}
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" /> Enviar {editableFiles.length} PDFs
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* SEO Settings Dialog */}
+      <Dialog open={isSeoDialogOpen} onOpenChange={setIsSeoDialogOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Configurações de SEO</DialogTitle>
+            <DialogDescription>
+              Configure as metatags e informações para motores de busca
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center">
+                <Globe className="mr-2 h-5 w-5" /> Metatags Básicas
+              </h3>
+              <div className="space-y-4 px-1">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Título do Site</label>
+                  <Input 
+                    value={seoSettings.siteTitle} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeoSettings({...seoSettings, siteTitle: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">50-60 caracteres recomendado</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Descrição do Site</label>
+                  <Textarea 
+                    value={seoSettings.siteDescription}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSeoSettings({...seoSettings, siteDescription: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                  />
+                  <p className="text-xs text-gray-400 mt-1">150-160 caracteres recomendado</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Palavras-chave</label>
+                  <Textarea 
+                    value={seoSettings.siteKeywords}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSeoSettings({...seoSettings, siteKeywords: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border"
+                    placeholder="pdf, compartilhamento, documentos, etc (separados por vírgula)"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center">
+                <Share2 className="mr-2 h-5 w-5" /> Social Media & OpenGraph
+              </h3>
+              <div className="space-y-4 px-1">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Imagem OpenGraph (og:image)</label>
+                  <div className="flex items-center gap-3">
+                    <Input 
+                      value={seoSettings.ogImage}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeoSettings({...seoSettings, ogImage: e.target.value})}
+                      className="bg-dark-surface-2 border-dark-border" 
+                    />
+                    <Button variant="outline" className="border-dark-border flex-shrink-0">Upload</Button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">URL da imagem compartilhada em redes sociais (1200x630px recomendado)</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Twitter Handle</label>
+                  <Input 
+                    value={seoSettings.twitterHandle}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeoSettings({...seoSettings, twitterHandle: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center">
+                <Search className="mr-2 h-5 w-5" /> Verificação e Analytics
+              </h3>
+              <div className="space-y-4 px-1">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Código de Verificação Google</label>
+                  <Input 
+                    value={seoSettings.googleVerification}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeoSettings({...seoSettings, googleVerification: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                    placeholder="meta name='google-site-verification' content='..'"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Código de Verificação Bing</label>
+                  <Input 
+                    value={seoSettings.bingVerification}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeoSettings({...seoSettings, bingVerification: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                    placeholder="meta name='msvalidate.01' content='..'"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Chave da API OpenAI</label>
+                  <Input 
+                    value={seoSettings.openaiApiKey}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeoSettings({...seoSettings, openaiApiKey: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                    placeholder="sk-..." 
+                    type="password"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Usada para otimizar títulos e descrições extraídas de PDFs automaticamente</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Formato de títulos de PDFs</label>
+                  <Input 
+                    value={seoSettings.pdfTitleFormat}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeoSettings({...seoSettings, pdfTitleFormat: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                    placeholder="Exemplo: ${title} em PDF ou Leia Online"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Use {'${title}'} como placeholder para o título do PDF. Ex: {"${title} em PDF - Download Grátis"}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">ID Google Analytics</label>
+                  <Input 
+                    value={seoSettings.gaTrackingId}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeoSettings({...seoSettings, gaTrackingId: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border" 
+                    placeholder="G-XXXXXXXXXX ou UA-XXXXXXX-X"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Conteúdo do robots.txt</label>
+                  <Textarea 
+                    value={seoSettings.robotsTxt}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSeoSettings({...seoSettings, robotsTxt: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border font-mono text-sm" 
+                    rows={8}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSeoDialogOpen(false)} className="border-dark-border">
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => {
+                // Se o nome da mutação mudou, certifique-se de usar o nome correto
+                if (typeof saveSeoSettingsMutation !== 'undefined') {
+                  saveSeoSettingsMutation.mutate(seoSettings);
+                } else {
+                  // Tente usar a nova mutação se a anterior foi removida
+                  fetch('/api/seo', {
+                    method: 'PATCH',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(seoSettings),
+                  })
+                  .then(response => {
+                    if (!response.ok) {
+                      throw new Error('Erro ao salvar configurações de SEO');
+                    }
+                    return response.json();
+                  })
+                  .then(() => {
+                    toast({
+                      title: "Configurações atualizadas",
+                      description: "As configurações de SEO foram atualizadas com sucesso.",
+                    });
+                    setIsSeoDialogOpen(false);
+                  })
+                  .catch(error => {
+                    toast({
+                      title: "Erro ao atualizar configurações",
+                      description: "Não foi possível atualizar as configurações de SEO. Tente novamente.",
+                      variant: "destructive",
+                    });
+                  });
+                }
+              }}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Salvar Configurações SEO
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Dialog */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {categoryToEdit ? "Editar Categoria" : "Nova Categoria"}
+            </DialogTitle>
+            <DialogDescription>
+              {categoryToEdit 
+                ? "Edite os detalhes da categoria existente" 
+                : "Crie uma nova categoria para organizar os PDFs"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nome da Categoria</label>
+              <Input 
+                value={categoryForm.name} 
+                onChange={(e) => {
+                  const newName = e.target.value;
+                  setCategoryForm({
+                    ...categoryForm, 
+                    name: newName,
+                    slug: !categoryToEdit ? generateSlug(newName) : categoryForm.slug
+                  });
+                }}
+                className="bg-dark-surface-2 border-dark-border" 
+                placeholder="Ex: Literatura, Matemática, História"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between">
+                <label className="block text-sm font-medium mb-1">Slug (URL amigável)</label>
+                <div className="text-xs text-gray-400">Gerado automaticamente</div>
+              </div>
+              <Input 
+                value={categoryForm.slug} 
+                onChange={(e) => setCategoryForm({...categoryForm, slug: e.target.value})}
+                className="bg-dark-surface-2 border-dark-border font-mono" 
+                placeholder="literatura"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Usado na URL: /categorias/<span className="font-mono">{categoryForm.slug || "nome-da-categoria"}</span>
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Ícone</label>
+                <CategoryIconSelect 
+                  value={categoryForm.icon || "folder"} 
+                  onChange={(value) => setCategoryForm({...categoryForm, icon: value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Cor</label>
+                <div className="flex items-center space-x-2">
+                  <Input 
+                    type="color" 
+                    value={categoryForm.color} 
+                    onChange={(e) => setCategoryForm({...categoryForm, color: e.target.value})}
+                    className="w-12 h-10 p-1 bg-dark-surface-2 border-dark-border" 
+                  />
+                  <Input 
+                    value={categoryForm.color} 
+                    onChange={(e) => setCategoryForm({...categoryForm, color: e.target.value})}
+                    className="bg-dark-surface-2 border-dark-border font-mono" 
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Pré-visualização</label>
+              <div 
+                className="flex items-center gap-2 p-3 rounded-md" 
+                style={{ backgroundColor: categoryForm.color + "20" }}
+              >
+                <div 
+                  className="p-2 rounded-md" 
+                  style={{ backgroundColor: categoryForm.color }}
+                >
+                  {renderCategoryIcon(categoryForm.icon, "h-5 w-5 text-white")}
+                </div>
+                <span className="font-medium">{categoryForm.name || "Nome da Categoria"}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCategoryDialogOpen(false)} 
+              className="border-dark-border"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => {
+                if (categoryToEdit) {
+                  // Editar categoria existente
+                  updateCategoryMutation.mutate({
+                    id: categoryToEdit.id,
+                    data: {
+                      name: categoryForm.name,
+                      slug: categoryForm.slug,
+                      icon: categoryForm.icon || "folder",
+                      color: categoryForm.color || "#4f46e5"
+                    }
+                  });
+                } else {
+                  // Criar nova categoria
+                  createCategoryMutation.mutate({
+                    name: categoryForm.name,
+                    slug: categoryForm.slug,
+                    icon: categoryForm.icon || "folder",
+                    color: categoryForm.color || "#4f46e5"
+                  });
+                }
+              }}
+              disabled={!categoryForm.name || !categoryForm.slug || createCategoryMutation.isPending || updateCategoryMutation.isPending}
+              className="bg-primary hover:bg-primary-dark"
+            >
+              {categoryToEdit 
+                ? (updateCategoryMutation.isPending ? "Salvando..." : "Salvar Alterações")
+                : (createCategoryMutation.isPending ? "Criando..." : "Criar Categoria")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de edição de usuário */}
+      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+        <DialogContent className="bg-dark-surface border-dark-border sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Atualize as informações e permissões do usuário.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="username" className="text-right">
+                Usuário
+              </Label>
+              <Input
+                id="username"
+                value={userForm.username}
+                onChange={(e) => setUserForm({...userForm, username: e.target.value})}
+                className="col-span-3 bg-dark-surface-2 border-dark-border"
+                disabled // Nome de usuário não deve ser alterado
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Nome
+              </Label>
+              <Input
+                id="name"
+                value={userForm.name}
+                onChange={(e) => setUserForm({...userForm, name: e.target.value})}
+                className="col-span-3 bg-dark-surface-2 border-dark-border"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={userForm.email}
+                onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+                className="col-span-3 bg-dark-surface-2 border-dark-border"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="storage" className="text-right">
+                Armazenamento (GB)
+              </Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Input
+                  id="storage"
+                  type="number"
+                  value={userForm.storageLimit}
+                  onChange={(e) => {
+                    // Verificar se o valor é -1 (ilimitado) ou positivo
+                    const value = Number(e.target.value);
+                    if (value === -1 || value > 0) {
+                      setUserForm({...userForm, storageLimit: value});
+                    }
+                  }}
+                  className="bg-dark-surface-2 border-dark-border"
+                  min="-1"
+                  step="0.1"
+                />
+                <div className="flex-shrink-0 text-gray-400 text-sm">
+                  {userForm.storageLimit === -1 ? "(Ilimitado)" : "GB"}
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="isAdmin" className="text-right">
+                Admin
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="isAdmin" 
+                  checked={userForm.isAdmin}
+                  onCheckedChange={(checked) => setUserForm({...userForm, isAdmin: checked})}
+                />
+                <Label htmlFor="isAdmin" className="text-sm text-gray-300">
+                  {userForm.isAdmin ? "Sim" : "Não"}
+                </Label>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="isBlocked" className="text-right">
+                Bloqueado
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="isBlocked" 
+                  checked={userForm.isBlocked}
+                  onCheckedChange={(checked) => setUserForm({...userForm, isBlocked: checked})}
+                />
+                <Label htmlFor="isBlocked" className="text-sm text-gray-300">
+                  {userForm.isBlocked ? "Sim" : "Não"}
+                </Label>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsUserDialogOpen(false)}
+              className="border-dark-border"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              onClick={() => {
+                if (selectedUser) {
+                  // Converter GB para MB para armazenamento no banco
+                  const storageInMB = userForm.storageLimit === -1 ? -1 : Math.round(userForm.storageLimit * 1024);
+                  
+                  // Enviar para a API
+                  updateUserMutation.mutate({
+                    id: selectedUser.id,
+                    data: {
+                      ...userForm,
+                      storageLimit: storageInMB
+                    }
+                  });
+                }
+              }}
+              disabled={updateUserMutation.isPending}
+            >
+              {updateUserMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Função auxiliar para gerar slugs a partir de nomes
+function generateSlug(text: string): string {
+  return text
+    .toString()
+    .normalize('NFD') // Normaliza caracteres acentuados
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Substitui espaços por hífens
+    .replace(/[^\w\-]+/g, '') // Remove caracteres não alfanuméricos
+    .replace(/\-\-+/g, '-') // Substitui múltiplos hífens por um único
+    .slice(0, 80); // Limita o tamanho
+}

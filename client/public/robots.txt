@@ -1,0 +1,28 @@
+User-agent: *
+Allow: /pdf/
+Allow: /category/
+Allow: /uploads/thumbnails/
+Allow: /
+Allow: /ferramentas-pdf/
+Allow: /sobre/
+Allow: /contato/
+Allow: /faq/
+Disallow: /uploads/pdfs/
+Disallow: /api/
+Disallow: /admin/
+Disallow: /user/
+Disallow: /login
+Disallow: /register
+Disallow: /*.json$
+Disallow: /search?*
+Disallow: /download?*
+
+# Indexação específica para páginas de PDFs
+Allow: /pdf/$
+Allow: /pdf/*/
+
+# Cache control hints for bots
+Crawl-delay: 1
+
+# Sitemap declaration (apenas uma vez)
+Sitemap: https://pdfxandria.com/sitemap.xml

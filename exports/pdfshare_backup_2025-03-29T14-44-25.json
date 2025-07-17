@@ -1,0 +1,222 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "exportDate": "2025-03-29T14:44:25.330Z",
+    "tables": [
+      "users",
+      "categories",
+      "pdfs",
+      "favorites",
+      "dmcaRequests"
+    ]
+  },
+  "data": {
+    "users": [
+      {
+        "id": 1,
+        "username": "Hisoka",
+        "password": "65f9a5660dd66027c4ee031aadcde2de80813a253082328bed697fc82e2d97140546ae803144e28c967c91e034aacb2eee26f823c22432a91e9682366b9c3e53.8ee04f2583141e75e041f9323885d66f",
+        "isAdmin": true,
+        "storageLimit": 1073741824,
+        "storageUsed": 0,
+        "name": null,
+        "email": null,
+        "avatar": "/uploads/avatars/1743253278551-3648ee42-b2be-46ad-b790-106080728353.avif",
+        "bio": null,
+        "createdAt": "2025-03-29T03:23:10.689Z",
+        "updatedAt": "2025-03-29T03:23:10.689Z"
+      },
+      {
+        "id": 2,
+        "username": "admin",
+        "password": "542f9a96ab617079cd8050c756d407e39b7237f3acd7b662db1261112ef13568299c91211efc428e92efebbb68197e513d2e9bdfa7ca534a23e562049ff9c0f0.341f965b26c6d6ffe829bbdacca85a7a",
+        "isAdmin": true,
+        "storageLimit": 1073741824,
+        "storageUsed": 0,
+        "name": null,
+        "email": null,
+        "avatar": null,
+        "bio": null,
+        "createdAt": "2025-03-29T14:39:49.422Z",
+        "updatedAt": "2025-03-29T14:39:49.422Z"
+      }
+    ],
+    "categories": [
+      {
+        "id": 1,
+        "name": "Educação",
+        "slug": "educacao",
+        "icon": "folder",
+        "color": "#4f46e5"
+      },
+      {
+        "id": 2,
+        "name": "Negócios",
+        "slug": "negocios",
+        "icon": "folder",
+        "color": "#4f46e5"
+      },
+      {
+        "id": 3,
+        "name": "Ciência",
+        "slug": "ciencia",
+        "icon": "folder",
+        "color": "#4f46e5"
+      },
+      {
+        "id": 4,
+        "name": "Arte",
+        "slug": "arte",
+        "icon": "folder",
+        "color": "#4f46e5"
+      },
+      {
+        "id": 5,
+        "name": "Tecnologia",
+        "slug": "tecnologia",
+        "icon": "folder",
+        "color": "#4f46e5"
+      }
+    ],
+    "pdfs": [
+      {
+        "id": 3,
+        "title": "Microsoft Word - Sonetos.doc",
+        "slug": "microsoft-word-sonetosdoc",
+        "description": "Www.nead.unama.br Universidade da Amazônia Sonetos de Luís de Camões NEAD – NÚCLEO DE EDUCAÇÃO A DISTÂNCIA Av. Alcindo Cacela, 287 – Umarizal CEP: 66060-902 Belém – Pará Fones: (91) 4009-3196 /4009-3197 n e a d www.nead.unama.br E-mail: nead@unama.br N ú c l e o d e E d u c a ç ã o a D i s t â n c i a 1 www.nead.unama.br Sonetos de Luís de Camões Amor cuja providência (1595 - redondilha 038) Amor que em meu pensamento (1595 - redondilha 032) Ana quisestes que fosse (1668 - redondilha 033) Aquela cativa (1595 – redondilha 106) Aquele rosto que traz (1595 - redondilha 062) A verdura amena (1598 redondilha 014) Baixos e honestos andais (1595 - redondilha 081) Campo, que te estendes (1598 - redondilha 011) Campos cheios de prazer (1595 - redondilha 051) Caterina é mais formosa (1595 - redondilha 060) Cinco galinhas e meia (1616 - redondilha 101) Conde, cujo ilustre peito (1595 - redondilha 112) Corre sem vela e sem leme (1595 - redondilha 117) Costumadas artes são (1595 - redondilha 071) Cousa que este corpo não tem (1595 - Redondilha 063) Cum real de amor (1598 - redondilha 093) Da lindeza vossa (1595 - redondilha 026) Dama d'estranho primor (1595 - redondilha 015) D'Amor e seus danos (1595 - redondilha 105) De maneira me sucede (1668 - redondilha 056) Depois de sempre sofrer (1595 - redondilha 031) Después que Amor me formo (1595 - redondilha 083) Desque una vez miré (1616 - redondilha 035) De ver-vos a não vos ver (1595 - redondilha 077) Dióme Amor tormentos dos (1595 - redondilha 073) Dotou em vos natureza (1595 - redondilha 007) Dous tormentos vejo (1616 - redondilhas 004) É muito pera notar (1595 - redondilha 041) Eles verdes são (1595 – redondilha 012) Entre estes penedos (1598 - redondilha 010) E se a pena não me atiça (1598 - redondilha 085) Esses alfinetes vão (1595 - redondilha 022) Este mundo es...",
+        "filePath": "1743219434880-499254b6-f69d-4296-87fe-dc02bb30ab78.pdf",
+        "coverImage": "thumbnail_microsoft-word-sonetosdoc.png",
+        "pageCount": 106,
+        "isPublic": true,
+        "views": 0,
+        "downloads": 0,
+        "avgRating": 0,
+        "totalRatings": 0,
+        "categoryId": 1,
+        "userId": 1,
+        "createdAt": "2025-03-29T03:37:45.507Z"
+      },
+      {
+        "id": 2,
+        "title": "1743219434218 8a2f350a B4cb 4491 884c 7a5950514590",
+        "slug": "1743219434218-8a2f350a-b4cb-4491-884c-7a5950514590",
+        "description": "ESCRAVA ISAURA GUIMARÃES Esta obra respeita as regras do Novo Acordo Ortográfico A presente obra encontra-se sob domínio público ao abrigo do art.º 31 do Código do Direito de Autor e dos Direitos Conexos (70 anos após a morte do autor) e é distribuída de modo a proporcionar, de maneira totalmente gratuita, o benefício da sua leitura. Dessa forma, a venda deste e-book ou até mesmo a sua troca por qualquer contraprestação é totalmente condenável em qualquer circunstância. Foi a generosidade que motivou a sua distribuição e, sob o mesmo princípio, é livre para a difundir. Para encontrar outras obras de domínio público em formato digital, visite-nos em: http://www.luso-livros.net/ CAPÍTULO 1 Era nos primeiros anos do reinado do Sr. D. Pedro II. No fértil e opulento município de Campos de Goitacases, à margem do Paraíba, a pouca distância da vila de Campos, havia uma linda e magnífica fazenda. Era um edifício de harmoniosas proporções, vasto e luxuoso, situado em aprazível vargedo ao sopé de elevadas colinas cobertas de mata em parte devastada pelo machado do lavrador. Longe em redor a natureza ostentava-se ainda em toda a sua primitiva e selvática rudeza; mas por perto, em torno da deliciosa vivenda, a mão do homem tinha convertido a bronca selva, que cobria o solo, em jardins e pomares deleitosos, em gramais e pingues pastagens, sombreadas aqui e acolá por gameleiras gigantescas, perobas, cedros e copaíbas, que atestavam o vigor da antiga floresta. Quase não se via aí muro, cerca, nem valado; jardim, horta, pomar, pastagens, e plantios circunvizinhos eram divididos por viçosas e verdejantes sebes de bambus, piteiras, espinheiros e gravatás, que davam ao todo o aspeto do mais aprazível e delicioso vergel. A casa apresentava a frente às colinas. Entrava-se nela por um lindo alpendre todo enredado de flores trepadeiras, ao qual subia-se por uma escada de cantaria de seis a sete degraus.",
+        "filePath": "1743219434218-8a2f350a-b4cb-4491-884c-7a5950514590.pdf",
+        "coverImage": "thumbnail_1743219434218-8a2f350a-b4cb-4491-884c-7a5950514590.png",
+        "pageCount": 258,
+        "isPublic": true,
+        "views": 9,
+        "downloads": 0,
+        "avgRating": 0,
+        "totalRatings": 0,
+        "categoryId": 1,
+        "userId": 1,
+        "createdAt": "2025-03-29T03:37:44.087Z"
+      },
+      {
+        "id": 1,
+        "title": "Simple Border Stationery Paper A4 Document",
+        "slug": "simple-border-stationery-paper-a4-document",
+        "description": "Clara e a Luz da CoragemClara e a Luz da Coragem Clara era uma menina curiosa e cheia de energia durante o dia, mas quando a noite chegava, algo dentro dela mudava. O escuro a assustava. As sombras pareciam se mover sozinhas, e os sons da noite faziam seu coração bater mais rápido. Apesar dos esforços de seus pais para lhe dizer que não havia nada a temer, Clara simplesmente não conseguia se livrar daquele medo. Uma noite, enquanto se encolhia em sua cama com seu ursinho de pelúcia, um brilho suave iluminou seu quarto. Era diferente da luz do abajur ou da lua. Era uma luz dourada, pulsante, como se tivesse vida própria. Do meio daquele brilho surgiu uma pequena fada com asas transparentes e olhos brilhantes como estrelas. — Clara, meu nome é Luminara, e eu sou a guardiã da coragem — disse a fada com uma voz suave, mas firme. — Guardiã da coragem? — Clara piscou, espantada, esquecendo por um instante seu medo do escuro. — Sim! Eu cuido das crianças que têm medo da noite e mostro a elas que a escuridão pode ser um lugar mágico e cheio de aventuras. Você quer descobrir isso comigo? — perguntou Luminara, estendendo a mão minúscula. Clara hesitou. O medo ainda estava lá, mas algo na luz quente da fada a fez se sentir segura. Respirou fundo e assentiu, pegando na mão da pequena criatura. Num piscar de olhos, Clara e Luminara foram envolvidas pela luz dourada e, quando abriram os olhos novamente, não estavam mais no quarto. Estavam em uma floresta encantada, onde árvores cintilavam como estrelas e vagalumes desenhavam formas no ar. — Onde estamos? — Clara perguntou, maravilhada. — Estamos na Floresta Brilhante — respondeu Luminara. — Mas precisamos ter cuidado. O Guardião Sombrio está tentando apagar as luzes da floresta e espalhar o medo.",
+        "filePath": "1743218767816-a1ae4fa8-44c7-4bcb-9c08-dbc4b9b79c32.pdf",
+        "coverImage": "thumbnail_simple-border-stationery-paper-a4-document.png",
+        "pageCount": 4,
+        "isPublic": true,
+        "views": 13,
+        "downloads": 0,
+        "avgRating": 0,
+        "totalRatings": 0,
+        "categoryId": 2,
+        "userId": 1,
+        "createdAt": "2025-03-29T03:26:28.193Z"
+      },
+      {
+        "id": 4,
+        "title": "Crônicas do Japão",
+        "slug": "cronicas-do-japao",
+        "description": "Crônicas do Japão Príncipe Toneri e Ō-no-Yassumaro Edição Bilíngue Crônicas do Japão 日本書紀 Nihonshoshi Narrativas Históricas de um Japão Milenar Príncipe Toneri e Ō-no-Yassumaro Tradução: Lica Hashimoto – ANO 720 – Crônicas do Japão é a primeira coletânea oficial de his- tórias do Japão e a segunda fonte mais importante sobre a mitologia japonesa. A coletânea de 31 tomos foi apresentada à Corte da 44ª imperatriz Genshō em 720, após 39 anos de exaustiva consulta a documentos oficiais da Corte; registros sob a guarda de santuários e templos; pesquisas históricas em fontes chinesas, coreanas, transcrição de histórias orais de narrativas mitológicas, folclóricas; e das crenças populares sobre o processo de constituição do Japão e de seu povo. Crônicas do Japão ‒ Tomo I 1 A compilação deCrônicas do Japãoteve início em 681, sob a ordem do 40º Imperador Ten’mu, que designou seu filho, o príncipe Toneri, coordenador da equipe de redação da obra em chinês clássico (kanbuntai). O objetivo era criar uma nar- rativa coesa e linear acerca da linhagem imperial japonesa, ao estilo das narrativas históricas chinesas de grande prestígio na Antiguidade. Os dois primeiros tomos relatam a mitologia japonesa, destacando a origem do mundo e dos deuses; e 1 Imagem retirada do site da World Digital Library: https://www. wdl.org/pt/item/11835/view/1/3/ 6 os demais narram a história e os eventos que aconteceram durante o reinado de 37 imperadores e quatro imperatrizes apresentados em ordem cronológica, desde o 1º imperador lendário Jin’mu (711-585 a.C.) até a 41ª imperatriz Jitô (645- 703 d.C.). O 31º e último tomo apresentava a linhagem dos imperadores, mas este se perdeu nos meandros da história. O Nihonshoki, Crônicas do Japão, é uma das principais fontes de estudo da história e do pensamento japonês da Antiguidade. Possui uma estrutura narrativa singular, es- pecífica para contar as narrativas do Tomo I, Criação do Universo, e do Tomo II, Mitologia Japonesa: composto por um texto-base (honbun) e textos complementares (is- sho), apresentados um pouco recuados do texto-base, e que...",
+        "filePath": "1743219435014-1ba7de21-f12e-456a-8da1-8dc28865a71c.pdf",
+        "coverImage": "thumbnail_cronicas-do-japao.png",
+        "pageCount": 270,
+        "isPublic": true,
+        "views": 4,
+        "downloads": 0,
+        "avgRating": 0,
+        "totalRatings": 0,
+        "categoryId": 1,
+        "userId": 1,
+        "createdAt": "2025-03-29T03:37:48.792Z"
+      },
+      {
+        "id": 7,
+        "title": "PAULO FREIRE EDITADO.pmd",
+        "slug": "paulo-freire-editadopmd",
+        "description": "PAULO FREIRE PAULO FREIRE EDITADO.pmd 1 21/10/2010, 08:33 Ministério da Educação | Fundação Joaquim Nabuco Coordenação executiva Carlos Alberto Ribeiro de Xavier e Isabela Cribari Comissão técnica Carlos Alberto Ribeiro de Xavier (presidente) Antonio Carlos Caruso Ronca, Ataíde Alves, Carmen Lúcia Bueno Valle, Célio da Cunha, Jane Cristina da Silva, José Carlos Wanderley Dias de Freitas, Justina Iva de Araújo Silva, Lúcia Lodi, Maria de Lourdes de Albuquerque Fávero Revisão de conteúdo Carlos Alberto Ribeiro de Xavier, Célio da Cunha, Jáder de Medeiros Britto, José Eustachio Romão, Larissa Vieira dos Santos, Suely Melo e Walter Garcia Secretaria executiva Ana Elizabete Negreiros Barroso Conceição Silva Alceu Amoroso Lima | Almeida Júnior | Anísio Teixeira Aparecida Joly Gouveia | Armanda Álvaro Alberto | Azeredo Coutinho Bertha Lutz | Cecília Meireles | Celso Suckow da Fonseca | Darcy Ribeiro Durmeval Trigueiro Mendes | Fernando de Azevedo | Florestan Fernandes Frota Pessoa | Gilberto Freyre | Gustavo Capanema | Heitor Villa-Lobos Helena Antipoff | Humberto Mauro | José Mário Pires Azanha Julio de Mesquita Filho | Lourenço Filho | Manoel Bomfim Manuel da Nóbrega | Nísia Floresta | Paschoal Lemme | Paulo Freire Roquette-Pinto | Rui Barbosa | Sampaio Dória | Valnir Chagas Alfred Binet | Andrés Bello Anton Makarenko | Antonio Gramsci Bogdan Suchodolski | Carl Rogers | Célestin Freinet Domingo Sarmiento | Édouard Claparède | Émile Durkheim Frederic Skinner | Friedrich Fröbel | Friedrich Hegel Georg Kerschensteiner | Henri Wallon | Ivan Illich Jan Amos Comênio | Jean Piaget | Jean-Jacques Rousseau Jean-Ovide Decroly | Johann Herbart Johann Pestalozzi | John Dewey | José Martí | Lev Vygotsky Maria Montessori | Ortega y Gasset Pedro Varela | Roger Cousinet | Sigmund Freud PAULO FREIRE EDITADO.pmd 2 21/10/2010, 08:33 PAULO FREIRE Celso de Rui Beisiegel PAULO FREIRE EDITADO.pmd 3 21/10/2010, 08:33 ISBN 978-85-7019-511-1 © 2010 Coleção Educadores MEC | Fundação Joaquim Nabuco/Editora Massangana Esta publicação tem a cooperação da UNESCO no âmbito do Acordo de Cooperação Técnica MEC/UNESCO, o qual tem o objetivo...",
+        "filePath": "1743223295116-cddbfce2-e806-403c-b598-70dcef8a3c66.pdf",
+        "coverImage": "thumbnail_paulo-freire-editadopmd.png",
+        "pageCount": 128,
+        "isPublic": true,
+        "views": 0,
+        "downloads": 0,
+        "avgRating": 0,
+        "totalRatings": 0,
+        "categoryId": 1,
+        "userId": 1,
+        "createdAt": "2025-03-29T04:41:50.247Z"
+      },
+      {
+        "id": 8,
+        "title": "O Segredo da Mente Milionária",
+        "slug": "o-segredo-da-mente-milionaria",
+        "description": "Segredos da mente milionária T. Harv Eker ___ Contra capa: Se as suas finanças andam na corda bamba, talvez esteja na hora de você refletir sobre o que T. Harv Eker chama de \"o seu modelo de dinheiro\" um conjunto de crenças que cada um de nós alimenta desde a infância e que molda o nosso destino financeiro, quase sempre nos levando para uma situação difícil. Neste livro, Eker mostra como substituir uma mentalidade destrutiva que você talvez nem perceba que tem pelos \"arquivos de riqueza\", 17 modos de pensar e agir que distinguem os ricos das demais pessoas. Alguns desses princípios fundamentais são: Ou você controla o seu dinheiro ou ele controlará você. O hábito de administrar as finanças é mais importante do que a quantidade de dinheiro que você tem. A sua motivação para enriquecer é crucial: se ela possui uma raiz negativa, como o medo, a raiva ou a necessidade de provar algo a si mesmo, o dinheiro nunca lhe trará felicidade. O segredo do sucesso não é tentar evitar os problemas nem se livrar deles, mas crescer pessoalmente para se tornar maior do que qualquer adversidade. Os gastos excessivos têm pouco a ver com o que você está comprando e tudo a ver com a falta de satisfação na sua vida. O autor também ensina um método eficiente de administrar o dinheiro. Você aprenderá a estabelecer sua remuneração pelos resultados que apresenta e não pelas horas que trabalha. Além disso, saberá como aumentar o seu patrimônio líquido a verdadeira medida da riqueza. A idéia é fazer o seu dinheiro trabalhar para você tanto quanto você trabalha para ele. Para isso, é necessário poupar e investir em vez de gastar. \"Enriquecer não diz respeito somente a ficar rico em termos financeiros\", diz Eker. \"É mais do que isso: trata se da pessoa que você se torna para alcançar esse objetivo.\" ISBN 857542 239 1 1188575 422397 ___ Orelhas do livro Orelha esquerda: \"T.",
+        "filePath": "1743253194792-ea6c6b10-4afb-4400-be5a-3c781abeb343.pdf",
+        "coverImage": "thumbnail_o-segredo-da-mente-milionaria.png",
+        "pageCount": 135,
+        "isPublic": true,
+        "views": 6,
+        "downloads": 0,
+        "avgRating": 0,
+        "totalRatings": 0,
+        "categoryId": 2,
+        "userId": 1,
+        "createdAt": "2025-03-29T13:00:01.369Z"
+      },
+      {
+        "id": 6,
+        "title": "Voo Noturno",
+        "slug": "voo-noturno",
+        "description": "Na tarde dourada, já as colinas, sob o avião, iam cavando o seu rasto de sombra. Os campos tornavam-se luminosos, de uma luminosidade perene: naquelas regiões, os campos não cessam de espalhar seu ouro, assim como no inverno não findam a sua apoteose de neve. E o piloto Fabien, conduzindo, do extremo sul para Buenos Aires, o correio da Patagônia, reconhecia a aproximação da noite pelos mesmos sinais das águas de um porto: aquela calina, as pregas tênues esboçadas por nuvens tranquilas. Entrava numa enseada vasta e feliz. Perante tão profunda calma, Fabien poderia também julgar-se em longo passeio, como um pastor. Os pastores da Patagônia vão, sem pressa, dum rebanho a outro: ele ia duma cidade a outra, era o pastor das pequenas cidades. De duas em duas horas encontrava uma, aplacando a sede à beira dum rio ou ruminando no meio do seu campo. Por vezes, após cem quilômetros de charnecas mais despovoadas do que o mar, Fabien cruzava com uma herdade perdida, que parecia arrastar consigo, numa onda de prados, uma carga de vidas humanas; e então o piloto saudava esse navio com as asas. \"San Julian à vista; aterramos dentro de dez minutos.\" O radiotelegrafista transmitia a notícia a todos os postos da linha. Num percurso de mil e quinhentos quilômetros, do Estreito de Magalhães até Buenos Aires, sucediam-se escalas semelhantes; mas esta abria-se sobre as fronteiras da noite, como na África, à beira do mistério, se levanta a última aldeia conquistada. O radiotelegrafista deu um papel ao piloto: \"As tempestades são tantas que os meus auscultadores estão cheios de descargas. Dormiremos em San Julian?\" Fabien sorriu: o céu estava calmo como um aquário e dali para frente todas as escalas assinalavam: \"Céu limpo, vento nulo\". Respondeu: \"Continuaremos\". Mas o radiotelegrafista pressentia que as tempestades se haviam escondido em algum lugar, como os vermes se escondem nos frutos, a noite seria bela, mas estragada; repugnava- lhe entrar naquela escuridão prestes a apodrecer.",
+        "filePath": "1743223294843-621a2631-af79-4bd0-a9ce-08ab34be358f.pdf",
+        "coverImage": "thumbnail_voo-noturno.png",
+        "pageCount": 48,
+        "isPublic": true,
+        "views": 4,
+        "downloads": 0,
+        "avgRating": 0,
+        "totalRatings": 0,
+        "categoryId": 1,
+        "userId": 1,
+        "createdAt": "2025-03-29T04:41:48.130Z"
+      },
+      {
+        "id": 5,
+        "title": "1743223294298 118d8218 7917 4b83 B408 Ae8d5a8a2d92",
+        "slug": "1743223294298-118d8218-7917-4b83-b408-ae8d5a8a2d92",
+        "description": "Coleção acervo brasileiro Volume 3, 2ª edição CONTOS DO BRASIL SÍLVIO ROMERO Projeto editorial integral Eduardo Rodrigues Vianna Imagem da capa Xilogravura de Yolanda Carvalho, Rio Grande do Norte. Sob a licença Creative Commons 3.0 Brasil, -BY -SA. DO MUNDO INTEIRO cadernosdomundointeiro.com.br 2018 Jundiaí, SP Sumário ESTE LIVRO................................. 8 LICENÇA................................... 10 INTRODUÇÃO................................. 11 I Contos de origem europeia................. 31 1 O bicho Manjaléu........................... 32 2 Os três coroados............................ 38 3 O rei Andrada.............................. 43 4 O pinto pelado............................. 45 5 Uma das de Pedro Malasartes................... 47 6 O Sargento Verde........................... 50 7 A princesa roubadeira........................ 55 8 O pássaro preto............................ 59 9 Dona Labismina............................ 63 10 A raposinha............................... 67 11 O homem pequeno........................... 71 12 Dona Pinta................................ 75 13 O príncipe cornudo.......................... 79 3",
+        "filePath": "1743223294298-118d8218-7917-4b83-b408-ae8d5a8a2d92.pdf",
+        "coverImage": "thumbnail_1743223294298-118d8218-7917-4b83-b408-ae8d5a8a2d92.png",
+        "pageCount": 288,
+        "isPublic": true,
+        "views": 2,
+        "downloads": 0,
+        "avgRating": 0,
+        "totalRatings": 0,
+        "categoryId": 1,
+        "userId": 1,
+        "createdAt": "2025-03-29T04:41:43.436Z"
+      }
+    ],
+    "favorites": [],
+    "dmcaRequests": []
+  }
+}

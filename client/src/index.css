@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 15% 9%;
+    --foreground: 0 0% 88%;
+
+    --card: 237 20% 16%;
+    --card-foreground: 0 0% 88%;
+
+    --popover: 237 20% 16%;
+    --popover-foreground: 0 0% 88%;
+
+    --primary: 239 84% 62%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 237 12% 20%;
+    --secondary-foreground: 0 0% 88%;
+
+    --muted: 237 12% 20%;
+    --muted-foreground: 0 0% 64%;
+
+    --accent: 237 12% 20%;
+    --accent-foreground: 0 0% 88%;
+
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 237 10% 23%;
+    --input: 237 10% 23%;
+    --ring: 239 84% 62%;
+
+    --radius: 0.5rem;
+
+    --chart-1: 239 84% 62%;
+    --chart-2: 259 84% 62%;
+    --chart-3: 294 84% 62%;
+    --chart-4: 329 84% 62%;
+    --chart-5: 354 84% 62%;
+
+    --sidebar-background: 237 20% 16%;
+    --sidebar-foreground: 0 0% 88%;
+    --sidebar-primary: 239 84% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 237 12% 20%;
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 237 10% 23%;
+    --sidebar-ring: 239 84% 62%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-dark-bg text-dark-text;
+  }
+
+  /* For the PDF reader canvas */
+  .pdf-canvas {
+    width: 100%;
+    border: 1px solid theme('colors.dark-border');
+    background: theme('colors.dark-surface-2');
+    min-height: 500px;
+  }
+
+  /* Style scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+    
+  ::-webkit-scrollbar-track {
+    background: theme('colors.dark-bg'); 
+  }
+    
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.dark-border'); 
+    border-radius: 4px;
+  }
+    
+  ::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.primary'); 
+  }
+
+  /* PDF Upload Drop Zone */
+  .drop-zone {
+    border: 2px dashed theme('colors.dark-border');
+    transition: all 0.3s ease;
+  }
+    
+  .drop-zone:hover, .drop-zone.active {
+    border-color: theme('colors.primary');
+    background-color: rgba(93, 95, 239, 0.1);
+  }
+}
+
+@layer utilities {
+  .bg-dark-bg {
+    background-color: #0F1121;
+  }
+  .bg-dark-surface {
+    background-color: #1E2031;
+  }
+  .bg-dark-surface-2 {
+    background-color: #282A3A;
+  }
+  .border-dark-border {
+    border-color: #2D2F45;
+  }
+  .text-dark-text {
+    color: #E0E0E0;
+  }
+  .text-success {
+    color: #10B981;
+  }
+  .text-error, .text-destructive {
+    color: #F43F5E;
+  }
+  .text-warning {
+    color: #F59E0B;
+  }
+  .bg-primary-dark {
+    background-color: #4F51D9;
+  }
+  .bg-success {
+    background-color: #10B981;
+  }
+}

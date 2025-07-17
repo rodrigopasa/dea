@@ -1,0 +1,37 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+
+# Uploads e arquivos temporários
+uploads/*.pdf
+uploads/*.png
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.webp
+uploads/*.avif
+uploads/pdfs/*
+uploads/thumbnails/*
+uploads/avatars/*
+uploads/pdf-edits/*
+uploads/temp/*
+uploads/test/*
+!uploads/**/.gitkeep
+
+# Arquivos temporários e lock
+*.lock
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Arquivos de teste
+test/*.pdf
+test/*.png
+test/*.jpg
+
+# Logs e debug
+*.log
+debug.log

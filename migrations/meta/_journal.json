@@ -1,0 +1,61 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1743080785168,
+      "tag": "0000_mature_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1743206551010,
+      "tag": "0001_sharp_sunspot",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743208300000,
+      "tag": "0002_add_openai_api_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "when": "2025-03-29T02:21:22.718Z",
+      "tag": "0005_add_user_profile_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "when": "2025-03-29T03:20:04.197Z",
+      "tag": "0005_add_user_profile_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "when": "2025-03-29T03:22:58.891Z",
+      "tag": "0005_add_user_profile_fields",
+      "breakpoints": true
+    },
+    {
+      "tag": "0006_add_comments_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "when": "2025-03-29T15:01:13.781Z",
+      "tag": "0005_add_user_profile_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "when": "2025-04-03T02:49:30.000Z",
+      "tag": "0019_add_external_reference_to_subscriptions",
+      "breakpoints": true
+    }
+  ]
+}

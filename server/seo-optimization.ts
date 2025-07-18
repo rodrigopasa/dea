@@ -16,6 +16,8 @@ export class SEOOptimizer {
    * Gera structured data (JSON-LD) para um PDF
    */
   async generatePdfStructuredData(pdf: any, baseUrl: string): Promise<string> {
+    const seoSettings = await this.storage.getSeoSettings();
+    
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "DigitalDocument",
@@ -27,7 +29,7 @@ export class SEOOptimizer {
       "dateModified": pdf.createdAt,
       "publisher": {
         "@type": "Organization",
-        "name": "PDFxandria",
+        "name": seoSettings.siteTitle,
         "url": baseUrl
       },
       "genre": "Document",
@@ -98,12 +100,13 @@ export class SEOOptimizer {
   async generateHomeStructuredData(baseUrl: string): Promise<string> {
     const recentPdfs = await this.storage.getRecentPdfs(5);
     const categories = await this.storage.getAllCategories();
+    const seoSettings = await this.storage.getSeoSettings();
     
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "PDFxandria - Biblioteca Digital de PDFs Gratuitos",
-      "description": "Biblioteca digital de PDFs gratuita - Explore, baixe e compartilhe documentos",
+      "name": seoSettings.siteTitle,
+      "description": seoSettings.siteDescription,
       "url": baseUrl,
       "potentialAction": {
         "@type": "SearchAction",
@@ -112,7 +115,7 @@ export class SEOOptimizer {
       },
       "publisher": {
         "@type": "Organization",
-        "name": "PDFxandria",
+        "name": seoSettings.siteTitle,
         "url": baseUrl
       },
       "mainEntity": {
@@ -137,18 +140,24 @@ export class SEOOptimizer {
   /**
    * Gera meta tags otimizadas para um PDF
    */
-  generatePdfMetaTags(pdf: any, baseUrl: string): string {
-    const title = `${pdf.title} | Download PDF Grátis - PDFxandria`;
+  async generatePdfMetaTags(pdf: any, baseUrl: string): Promise<string> {
+    const seoSettings = await this.storage.getSeoSettings();
+    
+    // Usar o formato de título das configurações
+    const title = seoSettings.pdfTitleFormat 
+      ? seoSettings.pdfTitleFormat.replace('${title}', pdf.title)
+      : `${pdf.title} | Download PDF Grátis - ${seoSettings.siteTitle}`;
+    
     const description = pdf.description.length > 160 
       ? pdf.description.substring(0, 157) + '...' 
       : pdf.description;
     const canonicalUrl = `${baseUrl}/pdf/${pdf.slug}`;
-    const imageUrl = pdf.coverImage ? `${baseUrl}/${pdf.coverImage}` : `${baseUrl}/generated-icon.png`;
+    const imageUrl = pdf.coverImage ? `${baseUrl}/${pdf.coverImage}` : `${baseUrl}${seoSettings.ogImage}`;
 
     return `
     <title>${title}</title>
     <meta name="description" content="${description}">
-    <meta name="keywords" content="pdf grátis, download pdf, ${pdf.title}, documentos digitais">
+    <meta name="keywords" content="pdf grátis, download pdf, ${pdf.title}, ${seoSettings.siteKeywords}">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="${canonicalUrl}">
     
@@ -160,7 +169,7 @@ export class SEOOptimizer {
     <meta property="og:image" content="${imageUrl}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:site_name" content="PDFxandria">
+    <meta property="og:site_name" content="${seoSettings.siteTitle}">
     <meta property="article:published_time" content="${pdf.createdAt}">
     
     <!-- Twitter Card -->

@@ -451,11 +451,8 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Title, description, and category are required' });
       }
 
-      // Generate slug from title
-      const slug = title.toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+      // Generate slug from title using proper function
+      const slug = pdfUtils.generateSlug(title);
 
       // Extract PDF info
       const pdfInfo = await PdfProcessor.getPdfInfo(req.file.path);
@@ -557,11 +554,8 @@ export function registerRoutes(app: Express) {
             description = extractedMetadata.description;
           }
 
-          // Generate slug from title
-          const slug = title.toLowerCase()
-            .replace(/[^a-z0-9]/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
+          // Generate slug from title using proper function
+          const slug = pdfUtils.generateSlug(title);
 
           // Extract PDF info
           const pdfInfo = await PdfProcessor.getPdfInfo(file.path);
@@ -715,10 +709,7 @@ export function registerRoutes(app: Express) {
       if (slug && slug !== existingPdf.slug) {
         // Generate slug from title if not provided or invalid
         if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
-          finalSlug = (title || existingPdf.title).toLowerCase()
-            .replace(/[^a-z0-9]/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
+          finalSlug = pdfUtils.generateSlug(title || existingPdf.title);
         } else {
           finalSlug = slug;
         }

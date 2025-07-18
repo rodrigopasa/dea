@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useMobileMenu } from "@/hooks/use-mobile-menu";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -37,6 +37,11 @@ export default function Header() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   // Usar o contexto do menu móvel global
   const { isMobileMenuOpen, toggleMobileMenu } = useMobileMenu();
+  
+  // Buscar configurações de SEO para nome do site
+  const { data: seoSettings } = useQuery<any>({
+    queryKey: ["/api/seo-settings"],
+  });
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +98,7 @@ export default function Header() {
               <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z"/>
               <path d="M9 13H15V15H9V13ZM9 16H15V18H9V16Z"/>
             </svg>
-            <span className="text-xl font-bold">PDF<span className="text-primary">x</span>andria</span>
+            <span className="text-xl font-bold">{seoSettings?.siteTitle?.split(' ')[0] || "PDFxandria"}</span>
           </Link>
           
           {/* Menu Principal Desktop */}

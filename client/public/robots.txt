@@ -3,7 +3,6 @@ Allow: /pdf/
 Allow: /category/
 Allow: /uploads/thumbnails/
 Allow: /
-Allow: /api/
 Disallow: /sobre/
 Disallow: /contato/
 Disallow: /faq/

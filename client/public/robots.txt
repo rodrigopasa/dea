@@ -3,12 +3,11 @@ Allow: /pdf/
 Allow: /category/
 Allow: /uploads/thumbnails/
 Allow: /
-Allow: /ferramentas-pdf/
-Allow: /sobre/
-Allow: /contato/
-Allow: /faq/
+Allow: /api/
+Disallow: /sobre/
+Disallow: /contato/
+Disallow: /faq/
 Disallow: /uploads/pdfs/
-Disallow: /api/
 Disallow: /admin/
 Disallow: /user/
 Disallow: /login
@@ -25,4 +24,5 @@ Allow: /pdf/*/
 Crawl-delay: 1
 
 # Sitemap declaration (apenas uma vez)
-Sitemap: https://pdfxandria.com/sitemap.xml
+Sitemap: /sitemap.xml
+Sitemap: /sitemap-index.xml

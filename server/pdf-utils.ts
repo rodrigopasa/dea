@@ -220,8 +220,6 @@ function cleanText(text: string): string {
     .trim()
     // Remove apenas caracteres de controle preservando TODOS os acentos
     .replace(/[\x00-\x1F\x7F]/g, '') // Remove apenas caracteres de controle ASCII básicos
-    // Remove caracteres problemáticos mas preserva acentos portugueses (À-ÿ)
-    .replace(/[^\w\s\u00C0-\u00FF\u0100-\u017F\u1E00-\u1EFF.,!?;:()\[\]"'-]/g, ' ')
     .replace(/\s+/g, ' ') // Normaliza espaços novamente
     .trim();
 }
@@ -288,14 +286,7 @@ export function formatFileName(fileName: string): string {
     cleanName = cleanName
       .replace(/[-_]/g, ' ') // Substitui hífens e underscores por espaços
       .replace(/\s+/g, ' ') // Normaliza espaços múltiplos
-      .trim()
-      // Capitaliza cada palavra preservando acentos corretamente
-      .split(' ')
-      .map(word => {
-        if (word.length === 0) return word;
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      })
-      .join(' ');
+      .trim();
   }
   
   console.log(`Nome final formatado: ${cleanName}`);

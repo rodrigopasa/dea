@@ -29,11 +29,7 @@ export default function PdfCard({ pdf }: PdfCardProps) {
     enabled: !!pdf.categoryId,
   });
   
-  // Fetch user details
-  const { data: pdfUploader } = useQuery<{ username: string, isAdmin: boolean }>({
-    queryKey: [`/api/users/${pdf.userId}`],
-    enabled: !!pdf.userId,
-  });
+  // Removido busca do uploader já que agora apenas admins podem postar
   
   // Verificar se o PDF já está nos favoritos do usuário
   const { data: favoriteStatus } = useQuery<{ isFavorite: boolean }>({
@@ -237,24 +233,7 @@ export default function PdfCard({ pdf }: PdfCardProps) {
         {/* Espaçador flexível para empurrar informações do usuário para baixo */}
         <div className="flex-grow"></div>
         
-        {/* Informações do usuário */}
-        <div className="flex justify-between items-center mt-auto">
-          {pdfUploader ? (
-            <Link href={`/usuario/${pdfUploader.username}`} className="flex items-center space-x-2 hover:text-primary transition-colors">
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs">
-                <User className="w-3 h-3" />
-              </div>
-              <span className="text-sm text-gray-400">{pdfUploader.username}</span>
-            </Link>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 rounded-full bg-dark-surface-2 flex items-center justify-center text-white text-xs">
-                <User className="w-3 h-3" />
-              </div>
-              <span className="text-sm text-gray-400">Usuário</span>
-            </div>
-          )}
-        </div>
+        {/* Removido informações do usuário já que agora apenas admins podem postar */}
       </div>
     </div>
   );

@@ -196,7 +196,7 @@ export default function ReportPage() {
               autorais devem preferencialmente ser feitas através da nossa página específica de <a href="/dmca" className="text-primary hover:underline">DMCA</a>.
             </p>
             <p className="text-gray-400">
-              A equipe do PDFXANDRIA reserva-se o direito de remover qualquer conteúdo que viole nossos 
+              A equipe do BAIXAPDF reserva-se o direito de remover qualquer conteúdo que viole nossos 
               <a href="/terms" className="text-primary hover:underline"> Termos de Serviço</a>.
             </p>
           </div>

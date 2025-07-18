@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { PostgresStorage } from "./db-storage";
 import { setupAuth } from "./auth";
 import * as pdfUtils from "./pdf-utils";
-import PdfProcessor from "./pdf-utils";
 import { exportDatabase, importDatabase } from "./database-export";
 import { 
   generateSitemapIndex, 
@@ -451,14 +450,11 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Title, description, and category are required' });
       }
 
-      // Generate slug from title
-      const slug = title.toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+      // Generate slug from title using proper function
+      const slug = pdfUtils.generateSlug(title);
 
       // Extract PDF info
-      const pdfInfo = await PdfProcessor.getPdfInfo(req.file.path);
+      const pdfInfo = await pdfUtils.extractPdfMetadata(req.file.path);
       
       // Generate thumbnail
       const thumbnailPath = await pdfUtils.createPdfThumbnail(req.file.path, 'uploads/thumbnails');
@@ -474,7 +470,7 @@ export function registerRoutes(app: Express) {
         filePath: req.file.path,
         fileHash,
         coverImage: thumbnailPath,
-        pageCount: pdfInfo.pages,
+        pageCount: pdfInfo.pageCount,
         categoryId: parseInt(categoryId),
         userId: req.user.id,
         isPublic: true
@@ -557,14 +553,11 @@ export function registerRoutes(app: Express) {
             description = extractedMetadata.description;
           }
 
-          // Generate slug from title
-          const slug = title.toLowerCase()
-            .replace(/[^a-z0-9]/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
+          // Generate slug from title using proper function
+          const slug = pdfUtils.generateSlug(title);
 
-          // Extract PDF info
-          const pdfInfo = await PdfProcessor.getPdfInfo(file.path);
+          // Extract PDF info  
+          const pdfInfo = await pdfUtils.extractPdfMetadata(file.path);
           
           // Generate thumbnail
           const thumbnailPath = await pdfUtils.createPdfThumbnail(file.path, 'uploads/thumbnails');
@@ -576,7 +569,7 @@ export function registerRoutes(app: Express) {
             filePath: file.path,
             fileHash,
             coverImage: thumbnailPath,
-            pageCount: pdfInfo.pages,
+            pageCount: pdfInfo.pageCount,
             categoryId: parseInt(categoryId),
             userId: req.user.id,
             isPublic: isPublic === 'true'
@@ -650,9 +643,12 @@ export function registerRoutes(app: Express) {
         await storage.incrementPdfViews(id);
       }
 
-      // Set headers for inline viewing
+      // Set secure headers for inline viewing
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+      res.setHeader('Referrer-Policy', 'same-origin');
 
       // Stream file to response
       const fileStream = fs.createReadStream(pdf.filePath);
@@ -685,9 +681,19 @@ export function registerRoutes(app: Express) {
       // Increment download count
       await storage.incrementPdfDownloads(id);
 
-      // Set headers for download
-      res.setHeader('Content-Disposition', `attachment; filename="${pdf.title}.pdf"`);
+      // Sanitize filename for security
+      const sanitizedTitle = pdf.title.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim();
+      const safeFilename = sanitizedTitle || 'documento';
+      
+      // Set secure headers for download
+      res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}.pdf"`);
       res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+      res.setHeader('Referrer-Policy', 'no-referrer');
+      res.setHeader('X-Download-Options', 'noopen');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
 
       // Stream file to response
       const fileStream = fs.createReadStream(pdf.filePath);
@@ -715,10 +721,7 @@ export function registerRoutes(app: Express) {
       if (slug && slug !== existingPdf.slug) {
         // Generate slug from title if not provided or invalid
         if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
-          finalSlug = (title || existingPdf.title).toLowerCase()
-            .replace(/[^a-z0-9]/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
+          finalSlug = pdfUtils.generateSlug(title || existingPdf.title);
         } else {
           finalSlug = slug;
         }

@@ -57,9 +57,7 @@ export default function HomePage() {
             <div className="bg-gradient-to-r from-dark-surface via-dark-surface-2 to-dark-surface rounded-xl p-6 mb-8 shadow-lg">
               <div className="flex flex-col md:flex-row items-center">
                 <div className="md:w-3/5 mb-6 md:mb-0 md:pr-8">
-                  <div className="bg-gradient-to-r from-purple-500 via-primary to-blue-500 bg-clip-text text-transparent text-sm font-semibold mb-2">
-                    REPOSITÓRIO PÚBLICO DE PDFS
-                  </div>
+
                   <h1 className="text-4xl font-bold mb-4">Descubra e Baixe PDFs do Domínio Público</h1>
                   <p className="text-gray-300 mb-6 text-lg">
                     Explore nossa coleção de documentos PDF gratuitos e abertos para todos. Encontre livros, artigos e materiais educacionais disponíveis no domínio público.

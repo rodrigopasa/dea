@@ -204,13 +204,8 @@ export default function Header() {
               </DropdownMenu>
             </div>
           ) : (
-            <div className="flex items-center space-x-2">
-              <Link href="/entrar">
-                <Button variant="ghost">Entrar</Button>
-              </Link>
-              <Link href="/entrar">
-                <Button className="bg-primary hover:bg-primary-dark text-white">Registrar</Button>
-              </Link>
+            <div className="hidden">
+              {/* Botões de login/registro removidos - acesso direto via URL */}
             </div>
           )}
         </div>

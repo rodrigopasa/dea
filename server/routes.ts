@@ -17,7 +17,6 @@ import { GoogleSEOHelpers } from "./google-seo-helpers";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import os from "os"; // <--- ADICIONADO PARA ACESSAR A PASTA TEMP DO SISTEMA
 import { z } from "zod";
 import { db, pool } from "./db";
 import { and, eq, gte, desc, sql } from "drizzle-orm";
@@ -45,8 +44,7 @@ const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const PDF_DIR = path.join(UPLOAD_DIR, "pdfs");
 const THUMBNAILS_DIR = path.join(UPLOAD_DIR, "thumbnails");
 const AVATARS_DIR = path.join(UPLOAD_DIR, "avatars");
-// --- ALTERAÇÃO: Usando a pasta temporária do sistema ---
-const TEMP_DIR = path.join(os.tmpdir(), "pdf-temp-uploads");
+const TEMP_DIR = path.join(UPLOAD_DIR, "temp");
 
 // Create all necessary directories
 [UPLOAD_DIR, PDF_DIR, THUMBNAILS_DIR, AVATARS_DIR, TEMP_DIR].forEach(dir => {
@@ -56,21 +54,18 @@ const TEMP_DIR = path.join(os.tmpdir(), "pdf-temp-uploads");
   }
 });
 
-// Configure multer for FINAL PDF uploads
+// Configure multer for PDF uploads
 const pdfStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, PDF_DIR);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + randomUUID();
+    // Preserve original filename but make it safe
     const originalName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
     cb(null, uniqueSuffix + '-' + originalName);
   }
 });
-
-// --- NOVO: Multer para uploads TEMPORÁRIOS ---
-// Salva arquivos na pasta /tmp do sistema, que tem permissões garantidas.
-const tempUpload = multer({ dest: TEMP_DIR });
 
 // Configure avatar storage
 const avatarStorage = multer.diskStorage({
@@ -86,6 +81,7 @@ const avatarStorage = multer.diskStorage({
 const upload = multer({
   storage: pdfStorage,
   fileFilter: function (req, file, cb) {
+    // Accept only PDFs
     if (file.mimetype !== 'application/pdf') {
       return cb(new Error('Only PDF files are allowed!'));
     }
@@ -99,6 +95,7 @@ const upload = multer({
 const uploadAvatar = multer({
   storage: avatarStorage,
   fileFilter: function (req, file, cb) {
+    // Accept only images
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Only image files are allowed!'));
     }
@@ -123,6 +120,7 @@ const thumbnailStorage = multer.diskStorage({
 const thumbnailUpload = multer({
   storage: thumbnailStorage,
   fileFilter: function (req, file, cb) {
+    // Accept only images
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Only image files are allowed!'));
     }
@@ -138,14 +136,18 @@ export function registerRoutes(app: Express) {
   const seoOptimizer = new SEOOptimizer(storage);
   const googleSEOHelpers = new GoogleSEOHelpers(storage);
   
+  // Setup authentication
   setupAuth(app, storage);
 
+  // Admin middleware - check if user is admin
   function requireAdmin(req: Request, res: Response, next: any) {
     if (!req.user || !req.user.isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
     }
     next();
   }
+
+
 
   // User API - get current user info
   app.get('/api/user', (req, res) => {
@@ -200,6 +202,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // PATCH endpoint para compatibilidade com clientes existentes
   app.patch('/api/categories/:id', requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -255,6 +258,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Routes for homepage with default limits
   app.get('/api/pdfs/recent', async (req, res) => {
     try {
       const pdfs = await storage.getRecentPdfs(16);
@@ -325,6 +329,7 @@ export function registerRoutes(app: Express) {
       const slug = req.params.slug;
       let pdf = await storage.getPdfBySlug(slug);
       
+      // If not found, check for slug redirects
       if (!pdf) {
         const redirectSlug = await storage.getSlugRedirect(slug);
         if (redirectSlug) {
@@ -339,6 +344,7 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ error: 'PDF not found' });
       }
       
+      // Increment view count
       await storage.incrementPdfViews(pdf.id);
       
       res.json(pdf);
@@ -348,18 +354,21 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // --- ALTERAÇÃO: Usando o 'tempUpload' para verificação de duplicados ---
-  app.post('/api/pdfs/check-duplicate', requireAdmin, tempUpload.single('file'), async (req, res) => {
+  // Check for duplicate PDFs (admin only)
+  app.post('/api/pdfs/check-duplicate', requireAdmin, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
+      // Generate hash of file content to check for duplicates
       const fileBuffer = fs.readFileSync(req.file.path);
       const fileHash = createHash('md5').update(fileBuffer).digest('hex');
       
+      // Check for duplicate based on file hash
       const duplicate = await storage.checkPdfDuplicate(fileHash);
       
+      // Clean up temporary file
       fs.unlinkSync(req.file.path);
       
       if (duplicate) {
@@ -372,6 +381,7 @@ export function registerRoutes(app: Express) {
       }
     } catch (error) {
       console.error('Error checking PDF duplicate:', error);
+      // Clean up file if exists
       if (req.file && fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
@@ -379,20 +389,23 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // --- ALTERAÇÃO: Usando o 'tempUpload' para extração de metadados ---
-  app.post('/api/pdfs/extract-metadata', requireAdmin, tempUpload.single('file'), async (req, res) => {
+  // Extract PDF metadata (admin only)
+  app.post('/api/pdfs/extract-metadata', requireAdmin, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
+      // Extract metadata from PDF
       const metadata = await pdfUtils.extractPdfMetadata(req.file.path);
       
+      // Clean up temporary file
       fs.unlinkSync(req.file.path);
       
       res.json(metadata);
     } catch (error) {
       console.error('Error extracting PDF metadata:', error);
+      // Clean up file if exists
       if (req.file && fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
@@ -400,6 +413,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Extract metadata from filename (for multiple upload preparation)
   app.post('/api/pdfs/extract-metadata-filename', requireAdmin, async (req, res) => {
     try {
       const { filename, fileSize } = req.body;
@@ -408,6 +422,7 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Filename is required' });
       }
 
+      // Generate metadata from filename
       const title = pdfUtils.formatFileName(filename.replace('.pdf', ''));
       const description = `Documento PDF com aproximadamente ${Math.ceil((fileSize || 0) / 1024 / 1024)} MB`;
       
@@ -423,7 +438,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // --- Nenhuma alteração aqui, 'upload' salva no destino final ---
+  // Upload PDF (admin only)
   app.post('/api/pdfs/upload', requireAdmin, upload.single('pdf'), async (req, res) => {
     try {
       if (!req.file) {
@@ -436,9 +451,19 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Title, description, and category are required' });
       }
 
-      const slug = pdfUtils.generateSlug(title);
+      // Generate slug from title
+      const slug = title.toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      // Extract PDF info
       const pdfInfo = await PdfProcessor.getPdfInfo(req.file.path);
-      const thumbnailPath = await pdfUtils.createPdfThumbnail(req.file.path, THUMBNAILS_DIR);
+      
+      // Generate thumbnail
+      const thumbnailPath = await pdfUtils.createPdfThumbnail(req.file.path, 'uploads/thumbnails');
+
+      // Generate file hash for duplicate detection
       const fileBuffer = fs.readFileSync(req.file.path);
       const fileHash = createHash('md5').update(fileBuffer).digest('hex');
 
@@ -448,7 +473,7 @@ export function registerRoutes(app: Express) {
         description,
         filePath: req.file.path,
         fileHash,
-        coverImage: path.basename(thumbnailPath),
+        coverImage: thumbnailPath,
         pageCount: pdfInfo.pages,
         categoryId: parseInt(categoryId),
         userId: req.user.id,
@@ -459,14 +484,11 @@ export function registerRoutes(app: Express) {
       res.status(201).json(pdf);
     } catch (error) {
       console.error('Error uploading PDF:', error);
-      if (req.file && fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-      }
       res.status(500).json({ error: 'Failed to upload PDF' });
     }
   });
 
-  // --- Nenhuma alteração aqui, 'upload' salva no destino final ---
+  // Upload multiple PDFs (admin only)
   app.post('/api/admin/pdfs/upload-multiple', requireAdmin, upload.array('files'), async (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
@@ -484,6 +506,7 @@ export function registerRoutes(app: Express) {
       let duplicatesCount = 0;
       let processedCount = 0;
 
+      // Parse metadata if provided
       let parsedMetadata = [];
       if (metadata) {
         try {
@@ -497,17 +520,21 @@ export function registerRoutes(app: Express) {
         const file = files[i];
         
         try {
+          // Generate file hash for duplicate detection
           const fileBuffer = fs.readFileSync(file.path);
           const fileHash = createHash('md5').update(fileBuffer).digest('hex');
           
+          // Check for duplicates
           const duplicate = await storage.checkPdfDuplicate(fileHash);
           
           if (duplicate) {
             duplicatesCount++;
             if (skipDuplicates === 'true') {
+              // Clean up temporary file
               fs.unlinkSync(file.path);
               continue;
             } else {
+              // Clean up temporary file
               fs.unlinkSync(file.path);
               results.push({ 
                 filename: file.originalname, 
@@ -518,19 +545,29 @@ export function registerRoutes(app: Express) {
             }
           }
 
+          // Use metadata if available, otherwise extract from file
           let title, description;
           if (parsedMetadata[i]) {
             title = parsedMetadata[i].title;
             description = parsedMetadata[i].description;
           } else {
+            // Extract metadata from file
             const extractedMetadata = await pdfUtils.extractPdfMetadata(file.path);
             title = extractedMetadata.title;
             description = extractedMetadata.description;
           }
 
-          const slug = pdfUtils.generateSlug(title);
+          // Generate slug from title
+          const slug = title.toLowerCase()
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+
+          // Extract PDF info
           const pdfInfo = await PdfProcessor.getPdfInfo(file.path);
-          const thumbnailPath = await pdfUtils.createPdfThumbnail(file.path, THUMBNAILS_DIR);
+          
+          // Generate thumbnail
+          const thumbnailPath = await pdfUtils.createPdfThumbnail(file.path, 'uploads/thumbnails');
 
           const pdfData = {
             title,
@@ -538,7 +575,7 @@ export function registerRoutes(app: Express) {
             description,
             filePath: file.path,
             fileHash,
-            coverImage: path.basename(thumbnailPath),
+            coverImage: thumbnailPath,
             pageCount: pdfInfo.pages,
             categoryId: parseInt(categoryId),
             userId: req.user.id,
@@ -555,6 +592,7 @@ export function registerRoutes(app: Express) {
 
         } catch (error) {
           console.error('Error processing file:', file.originalname, error);
+          // Clean up temporary file
           if (fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
           }
@@ -576,6 +614,7 @@ export function registerRoutes(app: Express) {
 
     } catch (error) {
       console.error('Error uploading multiple PDFs:', error);
+      // Clean up any temporary files
       if (req.files) {
         (req.files as Express.Multer.File[]).forEach(file => {
           if (fs.existsSync(file.path)) {
@@ -587,6 +626,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Serve PDF file for viewing
   app.get('/api/pdfs/:id/file', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -600,17 +640,21 @@ export function registerRoutes(app: Express) {
         return res.status(403).json({ error: 'PDF is not public' });
       }
 
+      // Check if file exists
       if (!fs.existsSync(pdf.filePath)) {
         return res.status(404).json({ error: 'File not found' });
       }
 
+      // Increment view count if requested
       if (req.query.countView === 'true') {
         await storage.incrementPdfViews(id);
       }
 
+      // Set headers for inline viewing
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'inline');
 
+      // Stream file to response
       const fileStream = fs.createReadStream(pdf.filePath);
       fileStream.pipe(res);
     } catch (error) {
@@ -619,6 +663,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Download PDF
   app.get('/api/pdfs/:id/download', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -632,15 +677,19 @@ export function registerRoutes(app: Express) {
         return res.status(403).json({ error: 'PDF is not public' });
       }
 
+      // Check if file exists
       if (!fs.existsSync(pdf.filePath)) {
         return res.status(404).json({ error: 'File not found' });
       }
 
+      // Increment download count
       await storage.incrementPdfDownloads(id);
 
+      // Set headers for download
       res.setHeader('Content-Disposition', `attachment; filename="${pdf.title}.pdf"`);
       res.setHeader('Content-Type', 'application/pdf');
 
+      // Stream file to response
       const fileStream = fs.createReadStream(pdf.filePath);
       fileStream.pipe(res);
     } catch (error) {
@@ -649,44 +698,56 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Update PDF with optional cover image upload (admin only)
   app.put('/api/pdfs/:id', requireAdmin, thumbnailUpload.single('coverImage'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { title, description, categoryId, isPublic, slug } = req.body;
       
+      // Get existing PDF
       const existingPdf = await storage.getPdf(id);
       if (!existingPdf) {
         return res.status(404).json({ error: 'PDF not found' });
       }
       
+      // Check for slug changes and handle redirects
       let finalSlug = slug || existingPdf.slug;
       if (slug && slug !== existingPdf.slug) {
+        // Generate slug from title if not provided or invalid
         if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
-          finalSlug = pdfUtils.generateSlug(title || existingPdf.title);
+          finalSlug = (title || existingPdf.title).toLowerCase()
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
         } else {
           finalSlug = slug;
         }
         
+        // Check if new slug already exists
         const existingWithSlug = await storage.getPdfBySlug(finalSlug);
         if (existingWithSlug && existingWithSlug.id !== id) {
           return res.status(400).json({ error: 'URL já está em uso' });
         }
         
+        // Add redirect from old slug to new slug with 1 year duration
         const redirectUntil = new Date();
         redirectUntil.setFullYear(redirectUntil.getFullYear() + 1);
         
         await storage.addSlugHistory(existingPdf.slug, finalSlug, id);
       }
       
+      // Handle cover image upload
       let coverImage = existingPdf.coverImage;
       if (req.file) {
+        // Remove old cover image if exists
         if (existingPdf.coverImage) {
-          const oldImagePath = path.join(THUMBNAILS_DIR, existingPdf.coverImage);
+          const oldImagePath = path.join(process.cwd(), 'uploads', 'thumbnails', existingPdf.coverImage);
           if (fs.existsSync(oldImagePath)) {
             fs.unlinkSync(oldImagePath);
           }
         }
         
+        // Use uploaded file as new cover image
         coverImage = path.basename(req.file.path);
       }
       
@@ -708,6 +769,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Delete PDF (admin only)
   app.delete('/api/pdfs/:id', requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -717,15 +779,14 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ error: 'PDF not found' });
       }
 
+      // Delete file from filesystem
       if (fs.existsSync(pdf.filePath)) {
         fs.unlinkSync(pdf.filePath);
       }
 
-      if (pdf.coverImage) {
-          const thumbPath = path.join(THUMBNAILS_DIR, pdf.coverImage);
-          if (fs.existsSync(thumbPath)) {
-            fs.unlinkSync(thumbPath);
-          }
+      // Delete thumbnail if exists
+      if (pdf.coverImage && fs.existsSync(pdf.coverImage)) {
+        fs.unlinkSync(pdf.coverImage);
       }
 
       const success = await storage.deletePdf(id);
@@ -741,16 +802,22 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Favorites and Comments removed - not needed in public repository
+
+  // Ratings API
   app.post('/api/ratings', async (req, res) => {
     try {
       const { pdfId, userId, isPositive } = req.body;
       
+      // Check if user already rated this PDF
       const existingRating = await storage.getUserRating(userId, pdfId);
       
       if (existingRating) {
+        // Update existing rating
         const rating = await storage.updateRating(existingRating.id, { isPositive });
         res.json(rating);
       } else {
+        // Create new rating
         const ratingData = { pdfId, userId, isPositive };
         const rating = await storage.createRating(ratingData);
         res.status(201).json(rating);
@@ -761,6 +828,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // DMCA requests
   app.get('/api/dmca', requireAdmin, async (req, res) => {
     try {
       const requests = await storage.getAllDmcaRequests();
@@ -804,6 +872,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Get redirects (admin only)
   app.get("/api/admin/redirects", requireAdmin, async (req, res) => {
     try {
       const redirects = await db.select({
@@ -826,6 +895,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // SEO Settings (admin only)
   app.get('/api/seo-settings', requireAdmin, async (req, res) => {
     try {
       const settings = await storage.getSeoSettings();
@@ -847,6 +917,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Robots.txt from SEO settings
   app.get('/robots.txt', async (req, res) => {
     try {
       const seoSettings = await storage.getSeoSettings();
@@ -859,6 +930,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Site Settings (admin only)
   app.get('/api/site-settings', requireAdmin, async (req, res) => {
     try {
       const settings = await storage.getSiteSettings();
@@ -880,12 +952,30 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Get PDF by slug
+  app.get('/api/pdfs/slug/:slug', async (req, res) => {
+    try {
+      const pdf = await storage.getPdfBySlug(req.params.slug);
+      
+      if (!pdf) {
+        return res.status(404).json({ error: 'PDF not found' });
+      }
+      
+      res.json(pdf);
+    } catch (error) {
+      console.error('Error getting PDF by slug:', error);
+      res.status(500).json({ error: 'Failed to get PDF' });
+    }
+  });
+
+  // Admin stats endpoint
   app.get('/api/admin/stats', requireAdmin, async (req, res) => {
     try {
       const pdfs = await storage.getAllPdfs();
       const categories = await storage.getAllCategories();
       const dmcaRequests = await storage.getAllDmcaRequests();
       
+      // Calculate category stats
       const categoryStats = categories.map(category => {
         const categoryPdfs = pdfs.filter(pdf => pdf.categoryId === category.id);
         return {
@@ -913,6 +1003,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Admin PDFs endpoint
   app.get('/api/admin/pdfs', requireAdmin, async (req, res) => {
     try {
       const pdfs = await storage.getAllPdfs();
@@ -923,6 +1014,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Get user information
   app.get('/api/users/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -932,6 +1024,7 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ error: 'User not found' });
       }
       
+      // Return public user info only
       res.json({
         id: user.id,
         username: user.username,
@@ -943,6 +1036,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Get category by ID
   app.get('/api/categories/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -959,6 +1053,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Get PDFs by category
   app.get('/api/categories/:id/pdfs', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -970,6 +1065,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // SEO settings
   app.get('/api/seo', async (req, res) => {
     try {
       const seoSettings = await storage.getSeoSettings();
@@ -980,6 +1076,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Get formatted PDF title
   app.get('/api/pdfs/formatted-title', async (req, res) => {
     try {
       const { title } = req.query;
@@ -995,8 +1092,12 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Favorites removed - not needed in public repository
+
+  // Get user download limit
   app.get('/api/user/download-limit', async (req, res) => {
     try {
+      // For public system, no download limits
       res.json({ 
         hasLimit: false,
         dailyLimit: null,
@@ -1008,11 +1109,15 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Get user rating for PDF
   app.get('/api/pdfs/:id/user-rating', async (req, res) => {
     try {
       const pdfId = parseInt(req.params.id);
+      
+      // For public system, use IP-based rating checking
       const userIP = req.ip || req.connection.remoteAddress || '127.0.0.1';
       
+      // Check if this IP has rated this PDF
       const existingRating = await storage.getUserRatingByIP(userIP, pdfId);
       
       if (existingRating) {
@@ -1026,6 +1131,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Rate PDF
   app.post('/api/pdfs/:id/rate', async (req, res) => {
     try {
       const pdfId = parseInt(req.params.id);
@@ -1035,15 +1141,19 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'isPositive must be boolean' });
       }
 
+      // For public system, use IP-based rating to prevent spam
       const userIP = req.ip || req.connection.remoteAddress || '127.0.0.1';
       
+      // Check if this IP already rated this PDF
       const existingRating = await storage.getUserRatingByIP(userIP, pdfId);
       
       if (existingRating) {
+        // Update existing rating
         await storage.updateRating(existingRating.id, { 
           isPositive: isPositive 
         });
       } else {
+        // Create new rating
         await storage.createRating({
           pdfId,
           userIp: userIP,
@@ -1051,6 +1161,7 @@ export function registerRoutes(app: Express) {
         });
       }
 
+      // Calculate updated rating stats
       const ratingStats = await storage.calculatePdfRating(pdfId);
       
       res.json({ 
@@ -1063,8 +1174,10 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Health check endpoint - essencial para deploy
   app.get('/health', async (req, res) => {
     try {
+      // Verificar conexão com banco de dados
       await db.execute(sql`SELECT 1`);
       
       res.status(200).json({
@@ -1085,6 +1198,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Status endpoint alternativo
   app.get('/api/status', async (req, res) => {
     try {
       await db.execute(sql`SELECT 1`);
@@ -1102,8 +1216,10 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Endpoint de readiness (quando sistema está pronto para receber tráfego)
   app.get('/ready', async (req, res) => {
     try {
+      // Verificar se tabelas existem
       await db.execute(sql`SELECT 1 FROM users LIMIT 1`);
       await db.execute(sql`SELECT 1 FROM categories LIMIT 1`);
       
@@ -1121,15 +1237,19 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Static file serving
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+  // Sitemap Index - Principal
   app.get('/sitemap-index.xml', generateSitemapIndex);
-  app.get('/sitemap.xml', generateSitemap);
+  app.get('/sitemap.xml', generateSitemap); // Compatibilidade - redireciona para index
   
+  // Sitemaps específicos
   app.get('/sitemap-pages.xml', generatePagesSitemap);
   app.get('/sitemap-categories.xml', generateCategoriesSitemap);
   app.get('/sitemap-pdfs.xml', generatePdfsSitemap);
 
+  // SEO Validation endpoint (admin only)
   app.get('/api/seo-validation', requireAdmin, async (req, res) => {
     try {
       const validation = await seoOptimizer.validateSEOOptimization();
@@ -1140,6 +1260,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Structured data for PDFs
   app.get('/api/pdfs/:slug/structured-data', async (req, res) => {
     try {
       const pdf = await storage.getPdfBySlug(req.params.slug);
@@ -1158,10 +1279,12 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Robots.txt from SEO settings
   app.get('/robots.txt', async (req, res) => {
     try {
       const seoSettings = await storage.getSeoSettings();
       res.setHeader('Content-Type', 'text/plain');
+      // Adiciona referência ao sitemap index na resposta do robots.txt
       const robotsTxt = seoSettings.robotsTxt || 'User-agent: *\nAllow: /';
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const robotsWithSitemap = `${robotsTxt}\n\nSitemap: ${baseUrl}/sitemap-index.xml`;
@@ -1174,6 +1297,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // RSS Feed for better Google indexing
   app.get('/rss.xml', async (req, res) => {
     try {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -1187,10 +1311,11 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Google Search Console verification
   app.get('/google*.html', async (req, res) => {
     try {
       const seoSettings = await storage.getSeoSettings();
-      const fileName = req.path.substring(1);
+      const fileName = req.path.substring(1); // Remove leading slash
       
       if (seoSettings.googleVerification && fileName.includes(seoSettings.googleVerification)) {
         res.send(`google-site-verification: ${fileName}`);
@@ -1203,6 +1328,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Bing Webmaster Tools verification
   app.get('/BingSiteAuth.xml', async (req, res) => {
     try {
       const seoSettings = await storage.getSeoSettings();
@@ -1223,6 +1349,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Database export (admin only)
   app.get('/api/export-database', requireAdmin, async (req, res) => {
     try {
       await exportDatabase(res);
@@ -1232,6 +1359,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Database import (admin only)
   app.post('/api/import-database', requireAdmin, upload.single('backup'), async (req, res) => {
     try {
       if (!req.file) {

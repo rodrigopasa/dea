@@ -66,28 +66,28 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/shared ./shared
 
-# --- INÍCIO DA CORREÇÃO DE PERMISSÕES ---
-
-# 1. Cria explicitamente todos os diretórios de upload.
+# Cria explicitamente todos os diretórios de upload.
 RUN mkdir -p /app/uploads/pdfs && \
     mkdir -p /app/uploads/thumbnails && \
     mkdir -p /app/uploads/avatars && \
     mkdir -p /app/uploads/pdf-edits && \
     mkdir -p /app/uploads/temp
 
-# 2. Cria um usuário e grupo não-root (sintaxe para Debian).
+# Cria um usuário e grupo não-root (sintaxe para Debian).
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --gid 1001 nextjs
 
-# 3. Altera a propriedade de TODA a pasta /app, incluindo os diretórios de upload recém-criados.
+# Altera a propriedade de TODA a pasta /app.
 RUN chown -R nextjs:nodejs /app
 
-# 4. Muda para o usuário não-root.
+# Copia o script de entrypoint que acabamos de criar.
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+# Dá permissão de execução para o script.
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Muda para o usuário não-root.
 USER nextjs
 
-# --- FIM DA CORREÇÃO DE PERMISSÕES ---
-
 # Define volumes separados para cada tipo de upload para armazenamento persistente.
-# O Coolify irá mapear cada um destes para o armazenamento do host.
 VOLUME ["/app/uploads/pdfs", "/app/uploads/thumbnails", "/app/uploads/avatars", "/app/uploads/pdf-edits", "/app/uploads/temp"]
 
 # Expõe a porta em que a aplicação irá rodar.
@@ -97,6 +97,7 @@ EXPOSE ${PORT:-5000}
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=5 \
   CMD curl -f http://localhost:${PORT:-5000}/health || exit 1
 
-# Comando para iniciar a aplicação, utilizando 'dumb-init'.
-ENTRYPOINT ["dumb-init", "--"]
+# Comando para iniciar a aplicação, utilizando 'dumb-init' para executar nosso script de permissões.
+ENTRYPOINT ["dumb-init", "--", "/app/docker-entrypoint.sh"]
+# O comando padrão que será executado pelo script de entrypoint.
 CMD ["npm", "start"]

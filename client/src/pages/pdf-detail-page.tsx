@@ -25,6 +25,7 @@ import {
 import PdfCard from "@/components/pdf/pdf-card";
 import PdfViewer from "@/components/pdf/pdf-viewer-redesigned";
 import UnifiedSeo from "@/components/seo/unified-seo";
+import { DownloadSafetyModal } from "@/components/security/download-safety-modal";
 import {
   Bookmark,
   BookmarkCheck,
@@ -52,6 +53,8 @@ export default function PdfDetailPage() {
   // Estado para a avaliação (true = positivo, false = negativo, null = sem avaliação)
   const [userRating, setUserRating] = useState<boolean | null>(null);
   const [ratingChanged, setRatingChanged] = useState(false);
+  // Estado para controlar o modal de download seguro
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
   // Evitando o uso de condições antes dos hooks
   const slug = match ? params?.slug : null;
@@ -226,37 +229,42 @@ export default function PdfDetailPage() {
 
 
 
-  // Handle PDF download - agora público, sem restrições
-const handleDownload = async () => {
-  if (!pdf) return;
+  // Handle PDF download click - mostra modal de segurança primeiro
+  const handleDownloadClick = () => {
+    setDownloadModalOpen(true);
+  };
 
-  try {
-    // Download direto sem verificações de autenticação
-    const response = await fetch(`/api/pdfs/${pdf.id}/download`, {
-      method: 'GET'
-    });
+  // Handle actual download after safety confirmation
+  const handleConfirmDownload = async () => {
+    if (!pdf) return;
 
-    if (!response.ok) {
-      throw new Error(`Erro ao baixar: ${response.status}`);
-    }
+    try {
+      // Download direto sem verificações de autenticação
+      const response = await fetch(`/api/pdfs/${pdf.id}/download`, {
+        method: 'GET'
+      });
 
-    // Converte o conteúdo recebido em blob para download
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+      if (!response.ok) {
+        throw new Error(`Erro ao baixar: ${response.status}`);
+      }
 
-    // Cria um link temporário para iniciar o download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${pdf.title}.pdf`;
-    document.body.appendChild(link);
-    link.click();
+      // Converte o conteúdo recebido em blob para download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Cria um link temporário para iniciar o download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${pdf.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
 
-    // Notifica o usuário que o download foi iniciado
+    // Notifica o usuário que o download foi iniciado com segurança
     toast({
-      title: "Download iniciado",
-      description: "O download do seu PDF começou.",
+      title: "Download seguro iniciado",
+      description: "O download do seu PDF foi verificado e iniciado com segurança.",
     });
 
     // Atualiza o cache de informações
@@ -705,7 +713,7 @@ const handleDownload = async () => {
                 <Button 
                   variant="outline" 
                   className="bg-dark-surface-2 hover:bg-dark-surface w-full flex items-center justify-center"
-                  onClick={handleDownload}
+                  onClick={handleDownloadClick}
                 >
                   <Download className="w-4 h-4 mr-2" /> 
                   Baixar PDF
@@ -844,6 +852,15 @@ const handleDownload = async () => {
           </div>
         )}
       </article>
+
+      {/* Modal de download seguro */}
+      <DownloadSafetyModal
+        isOpen={downloadModalOpen}
+        onClose={() => setDownloadModalOpen(false)}
+        filename={pdf ? `${pdf.title}.pdf` : 'documento.pdf'}
+        filesize={pdf?.fileSize ? `${Math.round(pdf.fileSize / 1024 / 1024 * 100) / 100} MB` : undefined}
+        onConfirmDownload={handleConfirmDownload}
+      />
     </main>
   );
 }

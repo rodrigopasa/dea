@@ -261,7 +261,7 @@ export function registerRoutes(app: Express) {
   // Routes for homepage with default limits
   app.get('/api/pdfs/recent', async (req, res) => {
     try {
-      const pdfs = await storage.getRecentPdfs(10);
+      const pdfs = await storage.getRecentPdfs(16);
       res.json(pdfs);
     } catch (error) {
       console.error('Error fetching recent PDFs:', error);

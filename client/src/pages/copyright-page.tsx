@@ -9,7 +9,7 @@ export default function CopyrightPage() {
         <div className="bg-dark-surface border border-dark-border rounded-lg p-6 mb-8">
           <h2 className="text-2xl font-semibold mb-4">Política de Direitos Autorais</h2>
           <p className="mb-4">
-            O PDFXANDRIA respeita os direitos de propriedade intelectual e espera que seus usuários façam o mesmo.
+            O BaixaPDF respeita os direitos de propriedade intelectual e espera que seus usuários façam o mesmo.
             É nossa política responder a notificações de suposta violação de direitos autorais que cumpram
             com a legislação aplicável.
           </p>
@@ -37,7 +37,7 @@ export default function CopyrightPage() {
           
           <h2 className="text-2xl font-semibold mb-4 mt-8">Procedimento de Remoção</h2>
           <p className="mb-4">
-            Ao receber uma notificação válida de violação de direitos autorais, o PDFXANDRIA tomará as seguintes medidas:
+            Ao receber uma notificação válida de violação de direitos autorais, o BaixaPDF tomará as seguintes medidas:
           </p>
           <ul className="list-disc pl-6 mb-4 space-y-2">
             <li>Removerá ou desativará o acesso ao material alegadamente infrator;</li>

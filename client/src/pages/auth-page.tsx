@@ -68,13 +68,18 @@ export default function AuthPage() {
               Admin Login
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Acesso restrito a administradores
+              Sistema seguro de autenticação administrativo
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
+              <form 
+                onSubmit={loginForm.handleSubmit(onLoginSubmit)} 
+                className="space-y-6"
+                method="post"
+                autoComplete="on"
+              >
                 <FormField
                   control={loginForm.control}
                   name="username"
@@ -86,6 +91,8 @@ export default function AuthPage() {
                           placeholder="Digite seu nome de usuário" 
                           {...field} 
                           className="bg-dark-surface-2 border-dark-border"
+                          autoComplete="username"
+                          name="username"
                         />
                       </FormControl>
                       <FormMessage />
@@ -105,6 +112,8 @@ export default function AuthPage() {
                           placeholder="Digite sua senha" 
                           {...field} 
                           className="bg-dark-surface-2 border-dark-border"
+                          autoComplete="current-password"
+                          name="password"
                         />
                       </FormControl>
                       <FormMessage />

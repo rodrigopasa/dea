@@ -66,15 +66,25 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/shared ./shared
 
-# Cria um usuário e grupo não-root (sintaxe para Debian).
+# --- INÍCIO DA CORREÇÃO DE PERMISSÕES ---
+
+# 1. Cria explicitamente todos os diretórios de upload.
+RUN mkdir -p /app/uploads/pdfs && \
+    mkdir -p /app/uploads/thumbnails && \
+    mkdir -p /app/uploads/avatars && \
+    mkdir -p /app/uploads/pdf-edits && \
+    mkdir -p /app/uploads/temp
+
+# 2. Cria um usuário e grupo não-root (sintaxe para Debian).
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --gid 1001 nextjs
 
-# Altera a propriedade dos arquivos da aplicação para o usuário não-root.
-# Isso garante que a aplicação tenha permissão para escrever na pasta /app/uploads.
+# 3. Altera a propriedade de TODA a pasta /app, incluindo os diretórios de upload recém-criados.
 RUN chown -R nextjs:nodejs /app
 
-# Muda para o usuário não-root.
+# 4. Muda para o usuário não-root.
 USER nextjs
+
+# --- FIM DA CORREÇÃO DE PERMISSÕES ---
 
 # Define volumes separados para cada tipo de upload para armazenamento persistente.
 # O Coolify irá mapear cada um destes para o armazenamento do host.

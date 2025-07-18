@@ -70,10 +70,15 @@ COPY --from=builder /app/shared ./shared
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --gid 1001 nextjs
 
 # Altera a propriedade dos arquivos da aplicação para o usuário não-root.
+# Isso garante que a aplicação tenha permissão para escrever na pasta /app/uploads.
 RUN chown -R nextjs:nodejs /app
 
 # Muda para o usuário não-root.
 USER nextjs
+
+# Define volumes separados para cada tipo de upload para armazenamento persistente.
+# O Coolify irá mapear cada um destes para o armazenamento do host.
+VOLUME ["/app/uploads/pdfs", "/app/uploads/thumbnails", "/app/uploads/avatars", "/app/uploads/pdf-edits", "/app/uploads/temp"]
 
 # Expõe a porta em que a aplicação irá rodar.
 EXPOSE ${PORT:-5000}

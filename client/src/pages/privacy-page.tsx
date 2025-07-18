@@ -38,7 +38,7 @@ export default function PrivacyPage() {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Introdução</h2>
                   <p className="text-gray-300">
-                    Esta Política de Privacidade descreve como coletamos, usamos e compartilhamos suas informações quando você utiliza o PDFxandria, nosso repositório público de PDFs. Como nosso serviço é de acesso livre e não requer registro, coletamos informações mínimas.
+                    Esta Política de Privacidade descreve como coletamos, usamos e compartilhamos suas informações quando você utiliza o BAixaPDF, nosso repositório público de PDFs. Como nosso serviço é de acesso livre e não requer registro, coletamos informações mínimas.
                   </p>
                 </section>
                 
@@ -134,7 +134,7 @@ export default function PrivacyPage() {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Entre em contato</h2>
                   <p className="text-gray-300">
-                    Se você tiver dúvidas ou preocupações sobre esta Política de Privacidade ou sobre nossas práticas de processamento de dados, entre em contato conosco em <a href="mailto:privacidade@pdfxandria.com" className="text-primary hover:underline">privacidade@pdfxandria.com</a>.
+                    Se você tiver dúvidas ou preocupações sobre esta Política de Privacidade ou sobre nossas práticas de processamento de dados, entre em contato conosco em <a href="mailto:privacidade@baixapdf.com" className="text-primary hover:underline">privacidade@baixapdf.com</a>.
                   </p>
                 </section>
               </div>

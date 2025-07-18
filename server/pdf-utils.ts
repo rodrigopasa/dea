@@ -218,11 +218,10 @@ function cleanText(text: string): string {
     .replace(/[\r\n\t]+/g, ' ') // Remove quebras de linha e tabs
     .replace(/\s+/g, ' ') // Normaliza espaços múltiplos
     .trim()
-    // Remove apenas caracteres de controle, preservando TODOS os acentos e caracteres especiais
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove apenas caracteres de controle
-    // Preserva caracteres acentuados do português, espanhol, francês, etc.
-    // Permite todos os caracteres Unicode válidos para texto
-    .replace(/[^\u0020-\u007E\u00A0-\u024F\u1E00-\u1EFF\u0100-\u017F\u0180-\u024F\u1EA0-\u1EF9]/g, '')
+    // Remove apenas caracteres de controle preservando acentos
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove caracteres de controle
+    // Preserva TODOS os caracteres acentuados do português e outros idiomas
+    .replace(/[^\u0020-\u007E\u00A0-\u00FF\u0100-\u017F\u0180-\u024F\u1E00-\u1EFF\u1EA0-\u1EF9\u0100-\u024F]/g, '')
     .replace(/\s+/g, ' ') // Normaliza espaços novamente
     .trim();
 }
@@ -285,12 +284,13 @@ export function formatFileName(fileName: string): string {
     console.log(`Nome muito curto, usando fallback: ${cleanName}`);
     cleanName = 'Documento PDF';
   } else {
-    // Formatar o nome limpo
+    // Formatar o nome limpo preservando acentos
     cleanName = cleanName
       .replace(/[-_]/g, ' ') // Substitui hífens e underscores por espaços
       .replace(/\s+/g, ' ') // Normaliza espaços múltiplos
       .trim()
-      .replace(/\b\w/g, char => char.toUpperCase()); // Capitaliza primeira letra de cada palavra
+      // Capitaliza primeira letra de cada palavra preservando acentos
+      .replace(/\b[\wáàâãäéèêëíìîïóòôõöúùûüçñÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ]/g, char => char.toUpperCase());
   }
   
   console.log(`Nome final formatado: ${cleanName}`);

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 export default function Footer() {
   // Buscar configurações de SEO para nome do site
   const { data: seoSettings } = useQuery<any>({
-    queryKey: ["/api/seo-settings"],
+    queryKey: ["/api/seo"],
   });
 
   return (
@@ -18,7 +18,29 @@ export default function Footer() {
                 <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z"/>
                 <path d="M9 13H15V15H9V13ZM9 16H15V18H9V16Z"/>
               </svg>
-              <span className="text-xl font-bold">{seoSettings?.siteTitle?.split(' ')[0] || "PDFxandria"}</span>
+              <span className="text-xl font-bold">
+                {(() => {
+                  const siteName = seoSettings?.siteTitle?.split(' ')[0] || "PDFxandria";
+                  // Se for PDFxandria, estiliza o 'x'
+                  if (siteName.toLowerCase() === "pdfxandria") {
+                    return (
+                      <>
+                        PDF<span className="text-primary">x</span>andria
+                      </>
+                    );
+                  }
+                  // Se for BaixaPDF, estiliza o 'a' 
+                  if (siteName.toLowerCase() === "baixapdf") {
+                    return (
+                      <>
+                        B<span className="text-primary">a</span>ixaPDF
+                      </>
+                    );
+                  }
+                  // Para outros nomes, retorna sem estilização especial
+                  return siteName;
+                })()}
+              </span>
             </div>
             <p className="text-gray-400 mb-4">Repositório público de documentos PDF de acesso livre e gratuito.</p>
             <div className="flex space-x-3">
@@ -72,7 +94,29 @@ export default function Footer() {
         </div>
         
         <div className="border-t border-dark-border mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
-          <div className="text-gray-400 mb-4 md:mb-0">© {new Date().getFullYear()} {seoSettings?.siteTitle?.split(' ')[0] || "PDFxandria"}. Todos os direitos reservados.</div>
+          <div className="text-gray-400 mb-4 md:mb-0">
+            © {new Date().getFullYear()} {(() => {
+              const siteName = seoSettings?.siteTitle?.split(' ')[0] || "PDFxandria";
+              // Se for PDFxandria, estiliza o 'x'
+              if (siteName.toLowerCase() === "pdfxandria") {
+                return (
+                  <>
+                    PDF<span className="text-primary">x</span>andria
+                  </>
+                );
+              }
+              // Se for BaixaPDF, estiliza o 'a' 
+              if (siteName.toLowerCase() === "baixapdf") {
+                return (
+                  <>
+                    B<span className="text-primary">a</span>ixaPDF
+                  </>
+                );
+              }
+              // Para outros nomes, retorna sem estilização especial
+              return siteName;
+            })()}. Todos os direitos reservados.
+          </div>
           <div className="text-gray-400">
             <span className="hover:text-white">Português</span>
           </div>

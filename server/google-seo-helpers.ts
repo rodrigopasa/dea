@@ -97,7 +97,7 @@ export class GoogleSEOHelpers {
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
     <meta property="og:url" content="${url}">
-    <meta property="og:site_name" content="PDFxandria">
+    <meta property="og:site_name" content="${data.siteName || 'Sistema de PDFs'}">
     `;
     
     if (image) {

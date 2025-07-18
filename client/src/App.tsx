@@ -27,7 +27,6 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { useAuth } from "@/hooks/use-auth";
 import { MobileMenuProvider } from "@/hooks/use-mobile-menu";
-import DynamicHtmlSeo from "@/components/seo/dynamic-html-seo";
 
 // PDF tools removed - now a simple public PDF repository
 
@@ -71,7 +70,6 @@ function App() {
   return (
     <MobileMenuProvider>
       <div className="min-h-screen flex flex-col bg-dark-bg text-dark-text">
-        <DynamicHtmlSeo />
         <Header />
         <div className="flex-1">
           <Router />

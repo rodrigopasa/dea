@@ -144,7 +144,7 @@ export default function PdfDetailPage() {
   const canonicalUrl = pdf ? `${window.location.origin}/pdf/${pdf.slug}` : undefined;
   const imageUrl = pdf?.coverImage ? `${window.location.origin}/uploads/thumbnails/${pdf.coverImage}` : undefined;
   const keywords = pdf && category ? [`${pdf.title}`, `${category.name}`, 'PDF', 'livro digital', 'documento', 'leitura online'] : undefined;
-  const author = uploader?.username || 'PDFxandria';
+  const author = seoSettings?.siteName || 'PDFxandria';
   const published = pdf?.createdAt ? new Date(pdf.createdAt).toISOString() : undefined;
 
   // Twitter handle das configurações de SEO

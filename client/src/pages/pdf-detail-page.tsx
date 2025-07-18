@@ -97,11 +97,7 @@ export default function PdfDetailPage() {
     enabled: !!pdf?.categoryId,
   });
 
-  // Fetch uploader details if PDF is loaded
-  const { data: uploader } = useQuery<User>({
-    queryKey: [`/api/users/${pdf?.userId}`],
-    enabled: !!pdf?.userId,
-  });
+  // Removi busca dos dados do uploader já que agora apenas admins podem postar
 
   // Fetch related PDFs if category is loaded
   const { data: relatedPdfs } = useQuery<Pdf[]>({
@@ -753,11 +749,6 @@ const handleDownload = async () => {
                     </Badge>
                   )}
                   <h1 className="text-3xl font-bold mb-1">{pdf.title}</h1>
-                  <div className="flex flex-wrap items-center text-gray-400 mb-4 gap-4">
-                    <Link href={`/usuario/${uploader?.username || 'desconhecido'}`} className="flex items-center hover:text-primary transition-colors">
-                      <UserIcon className="mr-1 w-4 h-4" /> Enviado por <span className="font-medium text-primary ml-1">{uploader?.username || 'Usuário desconhecido'}</span>
-                    </Link>
-                  </div>
                 </div>
               </div>
 

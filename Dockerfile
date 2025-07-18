@@ -66,28 +66,18 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/shared ./shared
 
-# Cria explicitamente todos os diretórios de upload.
-RUN mkdir -p /app/uploads/pdfs && \
-    mkdir -p /app/uploads/thumbnails && \
-    mkdir -p /app/uploads/avatars && \
-    mkdir -p /app/uploads/pdf-edits && \
-    mkdir -p /app/uploads/temp
-
 # Cria um usuário e grupo não-root (sintaxe para Debian).
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --gid 1001 nextjs
 
-# Altera a propriedade de TODA a pasta /app.
+# Altera a propriedade dos arquivos da aplicação para o usuário não-root.
+# Isso garante que a aplicação tenha permissão para escrever na pasta /app/uploads.
 RUN chown -R nextjs:nodejs /app
-
-# Copia o script de entrypoint que acabamos de criar.
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-# Dá permissão de execução para o script.
-RUN chmod +x /app/docker-entrypoint.sh
 
 # Muda para o usuário não-root.
 USER nextjs
 
 # Define volumes separados para cada tipo de upload para armazenamento persistente.
+# O Coolify irá mapear cada um destes para o armazenamento do host.
 VOLUME ["/app/uploads/pdfs", "/app/uploads/thumbnails", "/app/uploads/avatars", "/app/uploads/pdf-edits", "/app/uploads/temp"]
 
 # Expõe a porta em que a aplicação irá rodar.
@@ -97,7 +87,6 @@ EXPOSE ${PORT:-5000}
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=5 \
   CMD curl -f http://localhost:${PORT:-5000}/health || exit 1
 
-# Comando para iniciar a aplicação, utilizando 'dumb-init' para executar nosso script de permissões.
-ENTRYPOINT ["dumb-init", "--", "/app/docker-entrypoint.sh"]
-# O comando padrão que será executado pelo script de entrypoint.
+# Comando para iniciar a aplicação, utilizando 'dumb-init'.
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["npm", "start"]
